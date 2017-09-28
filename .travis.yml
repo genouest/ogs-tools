@@ -1,7 +1,7 @@
 language: python
 python:
-- '2.7'
-- '3.5'
+    - '2.7'
+    - '3.5'
 script:
-- pip install -U flake8
-- flake8 . --ignore=E501
+    - pip install -U flake8
+    - flake8 . --ignore=E501
