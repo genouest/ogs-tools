@@ -122,8 +122,10 @@ class OgsMerger():
             if 'owner' in child.qualifiers:
                 del child.qualifiers['owner']
             mrna_id = gene_id + "-" + "R" + (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
-            child.qualifiers['ID'][0] = mrna_id
-            child.qualifiers['Name'][0] = mrna_id
+            if 'Name' not in child.qualifiers:
+                child.qualifiers['Name'] = [mrna_id]
+            else:
+                child.qualifiers['Name'][0] = mrna_id
             child.qualifiers['Parent'][0] = gene_id
 
             # Some qualifiers are not needed outside apollo
