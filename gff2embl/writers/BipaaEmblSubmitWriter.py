@@ -27,7 +27,7 @@ def _insdc_location_string(location, rec_length):
         if location.strand == -1:
             # Special case, put complement outside the join/order/... and reverse order
             return "complement(%s(%s))" % (location.operator,
-                                   ",".join(_insdc_location_string(p, rec_length) for p in parts))
+                                           ",".join(_insdc_location_string(p, rec_length) for p in parts))
         else:
             return "%s(%s)" % (location.operator,
                                ",".join(_insdc_location_string(p, rec_length) for p in parts))

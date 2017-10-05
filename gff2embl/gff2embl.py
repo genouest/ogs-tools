@@ -114,7 +114,7 @@ else:
 print('Parsing GFF...')
 
 # To ease debugging
-convert_only = None # A list of gene ids to convert, set to None to convert everything
+convert_only = None  # A list of gene ids to convert, set to None to convert everything
 
 for rec in gff_iter:
 
@@ -128,7 +128,7 @@ for rec in gff_iter:
 
     keep_rec = False
 
-    for f in rec.features: # gene
+    for f in rec.features:  # gene
 
         gene_quals = {}
         locus_tag = f.qualifiers['ID'][0]
