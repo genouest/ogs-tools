@@ -26,19 +26,15 @@ def _insdc_location_string(location, rec_length):
         # CompoundFeatureLocation
         if location.strand == -1:
             # Special case, put complement outside the join/order/... and reverse order
-            return "%s(%s)" % (location.operator,
-                               ",".join(_insdc_location_string(p, rec_length)
-                                        for p in parts[::-1]))
+            return "complement(%s(%s))" % (location.operator,
+                                   ",".join(_insdc_location_string(p, rec_length) for p in parts))
         else:
             return "%s(%s)" % (location.operator,
                                ",".join(_insdc_location_string(p, rec_length) for p in parts))
     except AttributeError:
         # Simple FeatureLocation
         loc = _insdc_location_string_ignoring_strand_and_subfeatures(location, rec_length)
-        if location.strand == -1:
-            return "complement(%s)" % loc
-        else:
-            return loc
+        return loc
 
 
 class BipaaEmblSubmitWriter(EmblWriter):
