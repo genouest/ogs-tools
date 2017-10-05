@@ -258,22 +258,34 @@ for rec in gff_iter:
                 # Replace stop codons in the middle of sequences too
                 if '.' in pep_seq or '*' in pep_seq:
                     # As it occurs for manually edited genes, mark this as an exception (to avoid validation errors)
-                    cds_quals['exception'] = "reasons given in citation"
+                    cds_quals['exception'] = "annotated by transcript or proteomic data"
                     pep_seq = pep_seq.replace('.', 'X')
                     pep_seq = pep_seq.replace('*', 'X')
                     print("Gene %s on %s contains stop codon. Marking as exception." % (locus_tag, rec.name), file=sys.stderr)
 
-                # Check that sequence length is a multiple of 3
+                # Check if we have very short introns
                 cds_length = 0
+                last_end = 0
+                seen_short = False
                 for loc in cds_locs:
                     cds_length += len(loc)
 
+                    if last_end > 0:  # This is not the first CDS
+                        if (loc.start - last_end < 9) and not seen_short:
+                            cds_quals['exception'] = "annotated by transcript or proteomic data"
+                            print("Gene %s on %s contains a very short intron (%s). Marking as exception." % (locus_tag, rec.name, (loc.start - last_end)), file=sys.stderr)
+                            seen_short = True
+
+                    last_end = loc.end
+
+                # Check that sequence length is a multiple of 3
                 if cds_length % 3 != 0 and not fuzzy_start:
                     # As it occurs for manually edited genes, mark this as an exception (to avoid validation errors)
-                    cds_quals['exception'] = "reasons given in citation"
+                    cds_quals['exception'] = "annotated by transcript or proteomic data"
                     print("Gene %s on %s has a length which is not a multiple of 3. Marking as exception." % (locus_tag, rec.name), file=sys.stderr)
 
-                cds_quals['translation'] = pep_seq
+                if 'exception' in cds_quals:
+                    cds_quals['translation'] = pep_seq
 
                 if len(cds_locs) > 1:
                     # join cds locations
