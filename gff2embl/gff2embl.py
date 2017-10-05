@@ -97,6 +97,8 @@ else:
         locale.setlocale(locale.LC_TIME, saved)
     ref.journal = "Submitted (" + ref_date + ") to the INSDC."
 
+print('Loading input GFF and fasta files...')
+
 seq_dict = SeqIO.to_dict(SeqIO.parse(args.genome, "fasta", alphabet=generic_dna))
 
 prot_seq_dict = SeqIO.to_dict(SeqIO.parse(args.proteins, "fasta"))
@@ -109,6 +111,11 @@ if args.out_format == 'embl-standard':
 else:
     SeqIO._FormatToWriter['embl'] = BipaaEmblSubmitWriter
 
+print('Parsing GFF...')
+
+# To ease debugging
+convert_only = None # A list of gene ids to convert, set to None to convert everything
+
 for rec in gff_iter:
 
     # Add a source feature corresponding to current scaffold
@@ -119,10 +126,23 @@ for rec in gff_iter:
     source_f = SeqFeature(FeatureLocation(0, len(rec)), type="source", qualifiers=q)
     new_feats = [source_f]
 
-    for f in rec.features:  # gene
+    keep_rec = False
+
+    for f in rec.features: # gene
 
         gene_quals = {}
         locus_tag = f.qualifiers['ID'][0]
+
+        # Debugging code
+        if convert_only:
+            if locus_tag in convert_only:
+                keep_rec = True
+            else:
+                keep_rec = keep_rec and False
+                continue
+        else:
+            keep_rec = True
+
         locus_tag = re.sub(r"^([a-zA-Z]+)([0-9]+)$", r"\1_\2", locus_tag)  # EBI asks locus_tag to be of the form: XXXX_00000
         gene_quals['locus_tag'] = locus_tag
         gene_quals['gene'] = locus_tag
@@ -269,19 +289,20 @@ for rec in gff_iter:
 
                 new_feats += utr_feats
 
-    rec.features = new_feats
+    if keep_rec:
+        rec.features = new_feats
 
-    rec.description = args.description
+        rec.description = args.description
 
-    rec.annotations['organism'] = args.species
-    rec.annotations['taxonomy'] = lineage
-    rec.annotations['data_file_division'] = args.division
+        rec.annotations['organism'] = args.species
+        rec.annotations['taxonomy'] = lineage
+        rec.annotations['data_file_division'] = args.division
 
-    ref.location = [FeatureLocation(0, len(rec))]
-    rec.annotations['references'] = [ref]
+        ref.location = [FeatureLocation(0, len(rec))]
+        rec.annotations['references'] = [ref]
 
-    rec.dbxrefs = [('Project:%s' % args.project)]
+        rec.dbxrefs = [('Project:%s' % args.project)]
 
-    rec.annotations['keywords'] = ['CON']  # CON is appropriate for scaffolds: https://www.ebi.ac.uk/training/online/course/nucleotide-sequence-data-resources-ebi/what-ena/how-sequence-assembled
+        rec.annotations['keywords'] = ['CON']  # CON is appropriate for scaffolds: https://www.ebi.ac.uk/training/online/course/nucleotide-sequence-data-resources-ebi/what-ena/how-sequence-assembled
 
-    SeqIO.write(rec, args.out, "embl")
+        SeqIO.write(rec, args.out, "embl")
