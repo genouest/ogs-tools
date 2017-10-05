@@ -258,7 +258,7 @@ for rec in gff_iter:
                 # Replace stop codons in the middle of sequences too
                 if '.' in pep_seq or '*' in pep_seq:
                     # As it occurs for manually edited genes, mark this as an exception (to avoid validation errors)
-                    cds_quals['exception'] = "annotated by transcript or proteomic data"
+                    cds_quals['exception'] = "reasons given in citation"
                     pep_seq = pep_seq.replace('.', 'X')
                     pep_seq = pep_seq.replace('*', 'X')
                     print("Gene %s on %s contains stop codon. Marking as exception." % (locus_tag, rec.name), file=sys.stderr)
@@ -272,7 +272,7 @@ for rec in gff_iter:
 
                     if last_end > 0:  # This is not the first CDS
                         if (loc.start - last_end < 9) and not seen_short:
-                            cds_quals['exception'] = "annotated by transcript or proteomic data"
+                            cds_quals['exception'] = "reasons given in citation"
                             print("Gene %s on %s contains a very short intron (%s). Marking as exception." % (locus_tag, rec.name, (loc.start - last_end)), file=sys.stderr)
                             seen_short = True
 
@@ -281,7 +281,7 @@ for rec in gff_iter:
                 # Check that sequence length is a multiple of 3
                 if cds_length % 3 != 0 and not fuzzy_start:
                     # As it occurs for manually edited genes, mark this as an exception (to avoid validation errors)
-                    cds_quals['exception'] = "annotated by transcript or proteomic data"
+                    cds_quals['exception'] = "reasons given in citation"
                     print("Gene %s on %s has a length which is not a multiple of 3. Marking as exception." % (locus_tag, rec.name), file=sys.stderr)
 
                 if 'exception' in cds_quals:
