@@ -126,6 +126,19 @@ class OgsMerger():
                 child.qualifiers['Name'] = [mrna_id]
             else:
                 child.qualifiers['Name'][0] = mrna_id
+
+            # put apollo id to aliases and write a good ID
+            current_id = child.qualifiers['ID'][0]
+            if re.match("^[A-F0-9]{32}$", current_id) or re.match("^[a-f0-9-]{36}$", current_id):
+                if 'Alias' not in child.qualifiers:
+                    child.qualifiers['Alias'] = []
+                child.qualifiers['Alias'].append(current_id)
+
+            if 'ID' not in child.qualifiers:
+                child.qualifiers['ID'] = [mrna_id]
+            else:
+                child.qualifiers['ID'][0] = mrna_id
+
             child.qualifiers['Parent'][0] = gene_id
 
             # Some qualifiers are not needed outside apollo
@@ -845,7 +858,7 @@ class OgsMerger():
 
         print("# Id conversion table from {} to {}".format(os.path.basename(self.base_gff), self.source), file=file)
         if self.previous_gff:
-            print("# {}\t{}\t{}\tapollo_id".format(self.source, os.path.basename(self.base_gff), os.path.basename(self.base_gff)), file=file)
+            print("# {}\t{}\t{}\tapollo_gene_id".format(self.source, os.path.basename(self.base_gff), os.path.basename(self.base_gff)), file=file)
         else:
             print("# {}\t{}\tapollo_id".format(self.source, os.path.basename(self.base_gff)), file=file)
 
