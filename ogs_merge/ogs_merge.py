@@ -860,7 +860,7 @@ class OgsMerger():
         if self.previous_gff:
             print("# {}\t{}\t{}\tapollo_gene_id".format(self.source, os.path.basename(self.base_gff), os.path.basename(self.base_gff)), file=file)
         else:
-            print("# {}\t{}\tapollo_id".format(self.source, os.path.basename(self.base_gff)), file=file)
+            print("# {}\t{}\tapollo_gene_id".format(self.source, os.path.basename(self.base_gff)), file=file)
 
         for waid in self.name_map:
             old_id = '-'
