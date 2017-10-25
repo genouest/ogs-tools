@@ -114,7 +114,7 @@ else:
 print('Parsing GFF...')
 
 # To ease debugging
-convert_only = ['SFRICE005074.2'] #None  # A list of gene ids to convert, set to None to convert everything
+convert_only = None  # A list of gene ids to convert, set to None to convert everything
 
 for rec in gff_iter:
 
@@ -165,6 +165,7 @@ for rec in gff_iter:
 
         new_feats.append(f)
         seen_cds_locs = []
+        seen_utr_locs = []
         for sf in f.sub_features:
             if sf.type == "mRNA":
 
@@ -178,13 +179,23 @@ for rec in gff_iter:
                         utr_quals['gene'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type="5'UTR", qualifiers=utr_quals)
+                        # Check that there is not already an identical UTR
+                        if str(ssf.location) in seen_utr_locs:
+                            print("UTR %s on %s is identical to a previous one. Skipping." % (ssf.qualifiers['ID'][0], rec.name), file=sys.stderr)
+                            continue
                         utr_feats.append(new_utr)
+                        seen_utr_locs.append(str(ssf.location))
                     elif ssf.type in ['three_prime_UTR']:
                         utr_quals = {}
                         utr_quals['gene'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type="3'UTR", qualifiers=utr_quals)
+                        # Check that there is not already an identical UTR
+                        if str(ssf.location) in seen_utr_locs:
+                            print("UTR %s on %s is identical to a previous one. Skipping." % (ssf.qualifiers['ID'][0], rec.name), file=sys.stderr)
+                            continue
                         utr_feats.append(new_utr)
+                        seen_utr_locs.append(str(ssf.location))
                     elif ssf.type in ['UTR']:
                         utr_side = "5'UTR"
                         if len(cds_locs) > 0:
@@ -193,7 +204,12 @@ for rec in gff_iter:
                         utr_quals['gene'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type=utr_side, qualifiers=utr_quals)
+                        # Check that there is not already an identical UTR
+                        if str(ssf.location) in seen_utr_locs:
+                            print("UTR %s on %s is identical to a previous one. Skipping." % (ssf.qualifiers['ID'][0], rec.name), file=sys.stderr)
+                            continue
                         utr_feats.append(new_utr)
+                        seen_utr_locs.append(str(ssf.location))
 
                 # cds_locs should be sorted in forward direction (even if on reverse strand)
                 cds_locs = sorted(cds_locs, key=lambda loc: loc.start)
