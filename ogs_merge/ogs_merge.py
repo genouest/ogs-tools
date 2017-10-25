@@ -900,11 +900,11 @@ class OgsMerger():
         # Protein fasta file need to have modified id
         prot_in = open(self.tmpdir + '/proteins.fa', 'r')
         prot_out = open(self.out_protein, 'w+')
-        for l in prot_in:
-            l = l.strip()
-            if l.startswith(">"):
-                l = re.sub(r'-R([A-Z]+)', r'-P\1', l)
-            print(l, file=prot_out)
+        for prot in prot_in:
+            prot = prot.strip()
+            if prot.startswith(">"):
+                prot = re.sub(r'-R([A-Z]+)', r'-P\1', prot)
+            print(prot, file=prot_out)
         prot_out.close()
 
     def parse_args(self):
