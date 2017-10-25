@@ -71,8 +71,77 @@ This script generates a GFF file, the transcript/cds/protein fasta files, a file
 
 ## Submitting an OGS to ENA
 
-In gff2embl, there is a tentative of script to submit annotations to EBI ENA.
-It's still work-in-progress, probably not working yet.
+In gff2embl, there is a script to submit annotations to EBI ENA.
+
+```
+$ python gff2embl/gff2embl.py --h
+usage: gff2embl.py [-h] -g GENOME -p PROTEINS -s SPECIES -d DESCRIPTION -e
+                   EMAIL -j PROJECT [--ref_title REF_TITLE]
+                   [--ref_journal REF_JOURNAL] [--ref_authors REF_AUTHORS]
+                   [--ref_pubmed_id REF_PUBMED_ID]
+                   [--ref_consortium REF_CONSORTIUM]
+                   [--no_stop_codon NO_STOP_CODON]
+                   [--division {PHG,ENV,FUN,HUM,INV,MAM,VRT,MUS,PLN,PRO,ROD,SYN,TGN,UNC,VRL}]
+                   [--out-format {embl-standard,embl-ebi-submit}]
+                   [gff] [out]
+
+positional arguments:
+  gff                   The gff to read from
+  out                   The output embl file, ready for submission to EBI ENA
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GENOME, --genome GENOME
+                        A fasta file containing genome sequence
+  -p PROTEINS, --proteins PROTEINS
+                        A fasta file containing protein sequences
+  -s SPECIES, --species SPECIES
+                        The name of the species
+  -d DESCRIPTION, --description DESCRIPTION
+                        Description of the project
+  -e EMAIL, --email EMAIL
+                        A valid email address
+  -j PROJECT, --project PROJECT
+                        A valid EBI study ID (PRJXXXXXXX)
+  --ref_title REF_TITLE
+                        Title of the reference
+  --ref_journal REF_JOURNAL
+                        Journal of the reference
+  --ref_authors REF_AUTHORS
+                        Authors of the reference
+  --ref_pubmed_id REF_PUBMED_ID
+                        PubMed ID of the reference
+  --ref_consortium REF_CONSORTIUM
+                        Consortium name of the reference
+  --no_stop_codon NO_STOP_CODON
+                        Add this option if the protein sequences don't contain
+                        trailing stop codons even for complete sequences
+  --division {PHG,ENV,FUN,HUM,INV,MAM,VRT,MUS,PLN,PRO,ROD,SYN,TGN,UNC,VRL}
+                        The taxonomic division (INV=invertebrate)
+  --out-format {embl-standard,embl-ebi-submit}
+                        Flavor of EMBL output format: embl-standard=standard
+                        EMBL format; embl-ebi-submit=EMBL ready to submit to
+                        EBI (some special formating for automatic EBI post-
+                        processing)
+```
+
+EBI are using a custom embl format with some exotic validation rules.
+They provide a tool that performs validation of the produced embl file + automatically reformat some parts of embl files according to their rules.
+After running gff2embl, you need to get the latest validator jar from https://mvnrepository.com/artifact/uk.ac.ebi.ena.sequence/embl-api-validator
+
+Then run:
+
+```
+java -jar embl-api-validator-1.1.xxx.jar -fix -r ogs.embl
+```
+
+This will modify the `ogs.embl` file, be sure to keep a backup.
+
+If you only want to validate the emb file without modifying it, run it wihout the -fix option:
+
+```
+java -jar embl-api-validator-1.1.xxx.jar -r ogs.embl
+```
 
 ## License
 

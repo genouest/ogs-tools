@@ -114,7 +114,7 @@ else:
 print('Parsing GFF...')
 
 # To ease debugging
-convert_only = None  # A list of gene ids to convert, set to None to convert everything
+convert_only = ['SFRICE005074.2'] #None  # A list of gene ids to convert, set to None to convert everything
 
 for rec in gff_iter:
 
@@ -138,7 +138,7 @@ for rec in gff_iter:
             if locus_tag in convert_only:
                 keep_rec = True
             else:
-                keep_rec = keep_rec and False
+                keep_rec = keep_rec or False
                 continue
         else:
             keep_rec = True

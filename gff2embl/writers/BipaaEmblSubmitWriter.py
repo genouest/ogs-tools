@@ -10,7 +10,7 @@ Some fields are intentionnally left empty as they are automatically filled by EB
 """
 
 
-def _insdc_location_string(location, rec_length):
+def _insdc_location_string(location, rec_length, deep=False):
     """Build a GenBank/EMBL location from a (Compound) FeatureLocation (PRIVATE).
 
     There is a choice of how to show joins on the reverse complement strand,
@@ -27,14 +27,17 @@ def _insdc_location_string(location, rec_length):
         if location.strand == -1:
             # Special case, put complement outside the join/order/... and reverse order
             return "complement(%s(%s))" % (location.operator,
-                                           ",".join(_insdc_location_string(p, rec_length) for p in parts))
+                                           ",".join(_insdc_location_string(p, rec_length, True) for p in parts))
         else:
             return "%s(%s)" % (location.operator,
-                               ",".join(_insdc_location_string(p, rec_length) for p in parts))
+                               ",".join(_insdc_location_string(p, rec_length, True) for p in parts))
     except AttributeError:
         # Simple FeatureLocation
         loc = _insdc_location_string_ignoring_strand_and_subfeatures(location, rec_length)
-        return loc
+        if (location.strand == -1) and (not deep):
+            return "complement(%s)" % loc
+        else:
+            return loc
 
 
 class BipaaEmblSubmitWriter(EmblWriter):
@@ -100,7 +103,7 @@ class BipaaEmblSubmitWriter(EmblWriter):
         handle.write("XX\n")
         self.handle.write("AC   ;\n")
         handle.write("XX\n")
-        self.handle.write("AC * _%s;\n" % (accession))
+        self.handle.write("AC * _%s\n" % (accession))
         handle.write("XX\n")
 
     def _write_references(self, record):
