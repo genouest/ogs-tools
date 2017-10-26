@@ -98,7 +98,7 @@ class BipaaEmblSubmitWriter(EmblWriter):
         # 6. Taxonomic division
         # 7. Sequence length
         self._write_single_line("ID", "%s; %s; %s; %s; XXX; %s; %s %s."
-                                % ('XXX', 'XXX', 'linear', 'XXX',
+                                % ('XXX', 'SV XXX', 'linear', 'genomic DNA',
                                    'XXX', 'XXX', 'XXX'))
         handle.write("XX\n")
         self.handle.write("AC   ;\n")
@@ -128,7 +128,7 @@ class BipaaEmblSubmitWriter(EmblWriter):
             if ref.authors:
                 # We store the AUTHORS data as a single string
                 self._write_multi_line("RA", "XXX;")
-            if ref.title:
+            if ref.title and ref.title != " ":
                 # We store the title as a single string
                 self._write_multi_line("RT", '"%s";' % ref.title)
             else:

@@ -177,6 +177,7 @@ for rec in gff_iter:
                     elif ssf.type in ['five_prime_UTR']:
                         utr_quals = {}
                         utr_quals['gene'] = locus_tag
+                        utr_quals['locus_tag'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type="5'UTR", qualifiers=utr_quals)
                         # Check that there is not already an identical UTR
@@ -188,6 +189,7 @@ for rec in gff_iter:
                     elif ssf.type in ['three_prime_UTR']:
                         utr_quals = {}
                         utr_quals['gene'] = locus_tag
+                        utr_quals['locus_tag'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type="3'UTR", qualifiers=utr_quals)
                         # Check that there is not already an identical UTR
@@ -202,6 +204,7 @@ for rec in gff_iter:
                             utr_side = "3'UTR"
                         utr_quals = {}
                         utr_quals['gene'] = locus_tag
+                        utr_quals['locus_tag'] = locus_tag
                         utr_quals['note'] = ("utr_id=%s" % ssf.qualifiers['ID'][0])
                         new_utr = SeqFeature(ssf.location, type=utr_side, qualifiers=utr_quals)
                         # Check that there is not already an identical UTR
@@ -331,6 +334,6 @@ for rec in gff_iter:
 
         rec.dbxrefs = [('Project:%s' % args.project)]
 
-        rec.annotations['keywords'] = ['CON']  # CON is appropriate for scaffolds: https://www.ebi.ac.uk/training/online/course/nucleotide-sequence-data-resources-ebi/what-ena/how-sequence-assembled
+        rec.annotations['keywords'] = ['CON.']  # CON is appropriate for scaffolds: https://www.ebi.ac.uk/training/online/course/nucleotide-sequence-data-resources-ebi/what-ena/how-sequence-assembled
 
         SeqIO.write(rec, args.out, "embl")
