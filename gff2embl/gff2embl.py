@@ -291,11 +291,16 @@ for rec in gff_iter:
 
                     if last_end > 0:  # This is not the first CDS
                         if (loc.start - last_end < 9) and not seen_short:
-                            cds_quals['exception'] = "reasons given in citation"
-                            print("Gene %s on %s contains a very short intron (%s). Marking as exception." % (locus_tag, rec.name, (loc.start - last_end)), file=sys.stderr)
-                            seen_short = True
+                            # Officially we could add an exception but the ebi validator has problem reading it + the mRNA is probably a bad prediction, just delete it
+                            #cds_quals['exception'] = "annotated by transcript or proteomic data"
+                            #print("Gene %s on %s contains a very short intron (%s). Marking as exception." % (locus_tag, rec.name, (loc.start - last_end)), file=sys.stderr)
+                            seen_short = (loc.start - last_end)
+                            break
 
                     last_end = loc.end
+                if seen_short:
+                    print("mRNA %s on %s contains a very short intron (%s bp). Skipping." % (mrna_id, rec.name, seen_short), file=sys.stderr)
+                    continue
 
                 # Check that sequence length is a multiple of 3
                 if cds_length % 3 != 0 and not fuzzy_start:
