@@ -143,7 +143,7 @@ for rec in gff_iter:
         else:
             keep_rec = True
 
-        locus_tag = re.sub(r"^([a-zA-Z]+)([0-9]+)$", r"\1_\2", locus_tag)  # EBI asks locus_tag to be of the form: XXXX_00000
+        locus_tag = re.sub(r"^([a-zA-Z]+)([0-9.]+)$", r"\1_\2", locus_tag)  # EBI asks locus_tag to be of the form: XXXX_00000
         gene_quals['locus_tag'] = locus_tag
         gene_quals['gene'] = locus_tag
         f.qualifiers = gene_quals
