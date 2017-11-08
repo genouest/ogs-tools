@@ -128,6 +128,10 @@ for rec in gff_iter:
 
     keep_rec = False
 
+    seen_gene_locs = []
+    seen_cds_locs = []
+    seen_utr_locs = []
+
     for f in rec.features:  # gene
 
         gene_quals = {}
@@ -142,6 +146,14 @@ for rec in gff_iter:
                 continue
         else:
             keep_rec = True
+
+        # Check multiple identical genes
+        if str(f.location) in seen_gene_locs:
+            print("Gene %s on %s is identical to a previous one. Skipping." % (f.qualifiers['ID'][0], rec.name), file=sys.stderr)
+            keep_rec = keep_rec or False
+            continue
+
+        seen_gene_locs.append(str(f.location))
 
         locus_tag = re.sub(r"^([a-zA-Z]+)([0-9.]+)$", r"\1_\2", locus_tag)  # EBI asks locus_tag to be of the form: XXXX_00000
         gene_quals['locus_tag'] = locus_tag
@@ -164,8 +176,6 @@ for rec in gff_iter:
                     all_dbxref.append(db + ':' + x.strip())
 
         new_feats.append(f)
-        seen_cds_locs = []
-        seen_utr_locs = []
         for sf in f.sub_features:
             if sf.type == "mRNA":
 
