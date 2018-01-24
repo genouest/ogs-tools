@@ -257,7 +257,7 @@ class OgsMerger():
                 if cds_start in utr_coords.values():
                     # 5' UTR
                     found_start = None
-                    for start, end in utr_coords.iteritems():
+                    for start, end in utr_coords.items():
                         if found_start is None and end == cds_start:
                             found_start = start
                     if cds_start in exon_coords:
@@ -624,7 +624,7 @@ class OgsMerger():
                     self.name_map[wa] = self.primary_matches[wa]['gid']
                 else:
                     already_assigned = ""
-                    for w, g in self.name_map.iteritems():
+                    for w, g in self.name_map.items():
                         if g == self.primary_matches[wa]['gid']:
                             already_assigned = w
                     # The id was already used for another gene, don't store any id mapping for this gene, we will generate a new id later
