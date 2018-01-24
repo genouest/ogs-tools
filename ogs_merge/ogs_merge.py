@@ -327,6 +327,7 @@ class OgsMerger():
             count_id = 1
             for utr_start in utr_coords:
                 new_subf = SeqFeature(FeatureLocation(utr_start, utr_coords[utr_start]), type="UTR", strand=child.location.strand, qualifiers={"source": [self.source], 'ID': [child.qualifiers['Name'][0] + "-UTR-" + str(count_id)], 'Name': [child.qualifiers['Name'][0] + "-UTR"]})
+                new_subf.sub_features = [] # See https://github.com/biopython/biopython/issues/928
                 child.sub_features.append(new_subf)
                 count_id += 1
 
