@@ -435,7 +435,7 @@ class OgsMerger():
             # FIXME CDS could be more appropriate (or maybe not...)
             if not l.startswith("#") and cols[2] == 'exon':
                 cols[8] = re.sub(r'ID=([a-zA-Z0-9]+)', r'exID=\1', cols[8])  # remove already set id
-                cols[8] = re.sub(r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?', r'ID=\1', cols[8])  # generate a fake id based on Parent
+                cols[8] = re.sub(r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\.-_]*)?', r'ID=\1', cols[8])  # generate a fake id based on Parent + remove multiple parents (ie when an exon is part of multiple isoforms)
                 cols[8] = cols[8].rstrip(";")  # gff2bed doesn't like trailing ;
                 print('\t'.join(cols), file=base_gff_out)
         base_gff_out.close()
@@ -593,7 +593,7 @@ class OgsMerger():
             del self.primary_matches[wa]
 
     # When an apollo gene covers several base genes completely, make sure we remove all 100% covered base genes
-    # => 3 genes completely covered by 1 apollo gene wll give just 1 gene in output
+    # => 3 genes completely covered by 1 apollo gene will give just 1 gene in output
     def handle_merged(self):
 
         for wa in self.primary_matches:
