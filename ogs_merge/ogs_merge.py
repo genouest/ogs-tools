@@ -411,6 +411,13 @@ class OgsMerger():
                         # The gchild id can be absent from cds_subs if we are treating an exon shared between multiple isoforms,
                         # and it was already renamed while treating previous isoform
                         gchild.qualifiers['ID'] = [cds_subs[cds_id + str(gchild.location.start)]]
+
+                        # exotic stuff (stop_codon_read_through) needs to be readopted by the correct parent
+                        id_count_gg = 1
+                        for ggchild in gchild.sub_features:
+                            ggchild.qualifiers['ID'][0] = gchild.qualifiers['ID'][0] + "-" + ggchild.type + "-" + str(id_count_gg)
+                            ggchild.qualifiers['Parent'][0] = gchild.qualifiers['ID'][0]
+                            id_count_gg += 1
                 elif gchild.type in ["UTR", "five_prime_UTR", "three_prime_UTR"]:
                     if 'ID' in gchild.qualifiers:
                         utr_id = gchild.qualifiers['ID'][0]
