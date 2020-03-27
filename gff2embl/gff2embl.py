@@ -59,7 +59,8 @@ parser.add_argument("--ref_journal", help="Journal of the reference")
 parser.add_argument("--ref_authors", help="Authors of the reference")
 parser.add_argument("--ref_pubmed_id", help="PubMed ID of the reference")
 parser.add_argument("--ref_consortium", help="Consortium name of the reference")
-parser.add_argument("--no_stop_codon", help="Add this option if the protein sequences don't contain trailing stop codons even for complete sequences ")
+parser.add_argument("--no_stop_codon", action='store_true', help="Add this option if the protein sequences don't contain trailing stop codons even for complete sequences ")
+parser.add_argument('--no_empty_seq', action='store_true', help="Write only sequences having features")
 parser.add_argument("--division", default='INV', choices=['PHG', 'ENV', 'FUN', 'HUM', 'INV', 'MAM', 'VRT', 'MUS', 'PLN', 'PRO', 'ROD', 'SYN', 'TGN', 'UNC', 'VRL'], help="The taxonomic division (INV=invertebrate)")
 parser.add_argument("--out-format", choices=['embl-standard', 'embl-ebi-submit'], default='embl-ebi-submit', help="Flavor of EMBL output format: embl-standard=standard EMBL format; embl-ebi-submit=EMBL ready to submit to EBI (some special formating for automatic EBI post-processing)")
 parser.add_argument('gff', help="The gff to read from", nargs='?', type=argparse.FileType('r'), default=sys.stdin)
@@ -126,7 +127,7 @@ for rec in gff_iter:
     source_f = SeqFeature(FeatureLocation(0, len(rec)), type="source", qualifiers=q)
     new_feats = [source_f]
 
-    keep_rec = False
+    keep_rec = not args.no_empty_seq
 
     seen_gene_locs = []
     seen_cds_locs = []
