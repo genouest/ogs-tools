@@ -8,18 +8,28 @@ import sys
 
 from BCBio import GFF
 
+from Bio.SeqFeature import FeatureLocation, SeqFeature
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
+def change_parentname(feature, parentKeyName, parentName):
+
+    for child in feature.sub_features:
+        child.qualifiers[parentKeyName][0] = parentName
+
+    return
+
+
 class OgsCheck():
 
     def __init__(self):
-        self.gene_ids = []
         self.mRNA_ids = []
         self.exon_ids = []
         self.skipped_types = set()
+        self.qlistName = ['Name', 'ID']
 
     def check_valid_mrna(self, mrna):
 
@@ -114,11 +124,11 @@ class OgsCheck():
         for scaff in GFF.parse(args.infile):
             scaff.annotations = {}
             scaff.seq = ""
-            new_genes = []
+            new_genes = {}
 
             for gene in scaff.features:
 
-                if gene.type != 'gene':
+                if gene.type not in ['gene', 'mRNA']:
                     self.skipped_types.add(gene.type)
                     continue
 
@@ -130,25 +140,50 @@ class OgsCheck():
                     log.error("Found a gene with too many ID attributes")
                     continue
 
-                if gene.qualifiers['ID'][0] in self.gene_ids:
+                if gene.qualifiers['ID'][0] in new_genes.keys():
                     log.error("Duplicate gene id: %s" % gene.qualifiers['ID'][0])
                     continue
 
-                self.gene_ids.append(gene.qualifiers['ID'][0])
+                if gene.type == 'mRNA':
+                    log.warning("Found an mRNA without gene parent")
+                    if 'Parent' in gene.qualifiers and len(gene.qualifiers['Parent']) == 1:
+                        parent_id = gene.qualifiers['Parent'][0]
+                    else:
+                        parent_id = gene.qualifiers['ID'][0]
+                        gene.qualifiers['ID'][0] += "R"
 
-                new_mrnas = []
+                    gene = self.check_valid_mrna(gene)
 
-                for mrna in gene.sub_features:
+                    if gene is not None:
 
-                    mrna = self.check_valid_mrna(mrna)
+                        if parent_id in new_genes:
+                            new_genes[parent_id].sub_features.append(gene)
+                        else:
+                            q = {}
+                            for key in gene.qualifiers:
+                                q[key] = list(gene.qualifiers[key])
+                            new_g = SeqFeature(FeatureLocation(gene.location.start, gene.location.end), type="gene", strand=gene.location.strand, qualifiers=q)
+                            for qn in self.qlistName:
+                                gene.qualifiers[qn][0] = gene.qualifiers[qn][0] + 'R'
+                            new_g.sub_features = []
+                            new_g.sub_features.append(gene)
+                            gene.qualifiers['Parent'] = new_g.qualifiers['ID']
+                            change_parentname(gene, 'Parent', gene.qualifiers['ID'][0])
+                            new_genes[parent_id] = new_g
+                else:
+                    new_mrnas = []
 
-                    if mrna is not None:
-                        new_mrnas.append(mrna)
+                    for mrna in gene.sub_features:
 
-                gene.sub_features = new_mrnas
-                new_genes.append(gene)
+                        mrna = self.check_valid_mrna(mrna)
 
-            scaff.features = new_genes
+                        if mrna is not None:
+                            new_mrnas.append(mrna)
+
+                    gene.sub_features = new_mrnas
+                    new_genes[gene.qualifiers['ID'][0]] = gene
+
+            scaff.features = new_genes.values()
 
             if len(new_genes):
                 scaffs.append(scaff)
