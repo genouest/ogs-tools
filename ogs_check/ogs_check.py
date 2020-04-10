@@ -109,7 +109,7 @@ class OgsCheck():
 
         # Check minimum cds size
         if cds_cumul < 15:
-            log.warning("Discarding '%s' because CDS size < 15" % mrna.qualifiers['ID'][0])
+            log.warning("Discarding '%s' because CDS size < 15 (%s)" % (mrna.qualifiers['ID'][0], cds_cumul))
             return None
 
         return mrna
