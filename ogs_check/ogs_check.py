@@ -31,7 +31,7 @@ class OgsCheck():
         self.skipped_types = set()
         self.qlistName = ['Name', 'ID']
 
-    def check_valid_mrna(self, mrna):
+    def check_valid_mrna(self, mrna, is_complete=True):
 
         if mrna.type == 'transcript':
             mrna.type = "mRNA"
@@ -52,7 +52,8 @@ class OgsCheck():
             log.error("Duplicate mRNA id: %s" % mrna.qualifiers['ID'][0])
             return None
 
-        self.mRNA_ids.append(mrna.qualifiers['ID'][0])
+        if is_complete:
+            self.mRNA_ids.append(mrna.qualifiers['ID'][0])
 
         exon_coords = {}
         cds_cumul = 0
@@ -62,6 +63,10 @@ class OgsCheck():
         self.exon_ids = []
 
         for gchild in mrna.sub_features:  # exons, cds, utr
+
+            if self.args.source:
+                gchild.qualifiers['source'][0] = self.args.source
+
             if gchild.type == "exon":
                 exon_coords[gchild.location.start] = gchild.location.end
             elif gchild.type == "CDS":
@@ -95,22 +100,27 @@ class OgsCheck():
 
         mrna.sub_features = kept_gchild
 
-        # Check minimum intron size
-        start_sorted = sorted(exon_coords)
-        previous_end = None
-        for exon_start in start_sorted:
-            if previous_end is not None:
-                intron_size = exon_start - previous_end
-                if intron_size < 9:
-                    log.warning("Discarding '%s' because intron size %s < 9" % (mrna.qualifiers['ID'][0], intron_size))
-                    return None
+        # Only check CDS/intron sizes when we're sure the mrna is complete
+        if is_complete:
+            # Check minimum intron size
+            start_sorted = sorted(exon_coords)
+            previous_end = None
+            for exon_start in start_sorted:
+                if previous_end is not None:
+                    intron_size = exon_start - previous_end
+                    if intron_size < 9:
+                        log.warning("Discarding '%s' because intron size %s < 9" % (mrna.qualifiers['ID'][0], intron_size))
+                        return None
 
-            previous_end = exon_coords[exon_start]
+                previous_end = exon_coords[exon_start]
 
-        # Check minimum cds size
-        if cds_cumul < 15:
-            log.warning("Discarding '%s' because CDS size < 15 (%s)" % (mrna.qualifiers['ID'][0], cds_cumul))
-            return None
+            # Check minimum cds size
+            if cds_cumul < 15:
+                log.warning("Discarding '%s' because CDS size < 15 (%s)" % (mrna.qualifiers['ID'][0], cds_cumul))
+                return None
+
+        if self.args.source:
+            mrna.qualifiers['source'][0] = self.args.source
 
         return mrna
 
@@ -132,7 +142,7 @@ class OgsCheck():
                 new_parent.qualifiers[qn][0] = parent_id
         for qn in self.qlistName:
             if qn in orphan.qualifiers:
-                # The new gene is assigned the id from the mrna, and the mrna might be modified
+                # The new panret is assigned the id from the orphan, and the orphan id might be modified
                 orphan.qualifiers[qn][0] = orphan_id
         new_parent.sub_features = []
         new_parent.sub_features.append(orphan)
@@ -142,7 +152,7 @@ class OgsCheck():
         change_parentname(orphan, 'Parent', orphan.qualifiers['ID'][0])
         return new_parent
 
-    def adopt_orphan_mrna(self, orphan, inferred_parents):
+    def adopt_orphan_mrna(self, orphan, is_complete=True):
         # Validate it, create a gene parent, and look if we have a corresponding inferred_parent containing children from this mRNA
         if 'Parent' in orphan.qualifiers and len(orphan.qualifiers['Parent']) == 1:
             parent_id = orphan.qualifiers['Parent'][0]
@@ -152,10 +162,11 @@ class OgsCheck():
             orphan_id = parent_id + '-R'
 
         if 'ID' in orphan.qualifiers and len(orphan.qualifiers['ID']) == 1:
-            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in inferred_parents:
-                orphan.sub_features = inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in self.inferred_parents:
+                orphan.sub_features = self.inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+                del self.inferred_parents[orphan.qualifiers['ID'][0]]
 
-        orphan = self.check_valid_mrna(orphan)
+        orphan = self.check_valid_mrna(orphan, is_complete)
 
         if orphan is not None:
 
@@ -163,16 +174,16 @@ class OgsCheck():
                 potential_parent = self.new_genes[parent_id]
 
                 if potential_parent.location.strand != orphan.location.strand:
-                    log.error("Conflict between an orphan mRNA and its potential parent location: %s" % parent_id)
+                    log.error("Conflict between an orphan %s and its potential parent %s strand: %s != %s" % (orphan.type, parent_id, orphan.location.strand, potential_parent.location.strand))
                     return None
 
                 potential_parent.sub_features.append(orphan)
 
                 if potential_parent.location.start > orphan.location.start:
-                    potential_parent.location.start = orphan.location.start
+                    potential_parent.location = FeatureLocation(orphan.location.start, potential_parent.location.end, strand=potential_parent.location.strand)
 
                 if potential_parent.location.end < orphan.location.end:
-                    potential_parent.location.end = orphan.location.end
+                    potential_parent.location = FeatureLocation(potential_parent.location.start, orphan.location.end, strand=potential_parent.location.strand)
 
                 self.new_genes[parent_id] = potential_parent
 
@@ -184,7 +195,7 @@ class OgsCheck():
 
         return orphan
 
-    def adopt_orphan_exoncds(self, orphan, inferred_parents):
+    def adopt_orphan_exoncds(self, orphan, last_one=True):
         # Validate it, create a gene parent, and look if we have a corresponding inferred_parent containing children from this mRNA
         if 'Parent' in orphan.qualifiers and len(orphan.qualifiers['Parent']) == 1:
             parent_id = orphan.qualifiers['Parent'][0]
@@ -194,23 +205,30 @@ class OgsCheck():
             orphan_id = '%s-%s' % (parent_id, orphan.type)
 
         if 'ID' in orphan.qualifiers and len(orphan.qualifiers['ID']) == 1:
-            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in inferred_parents:
-                orphan.sub_features = inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in self.inferred_parents:
+                orphan.sub_features = self.inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+                del self.inferred_parents[orphan.qualifiers['ID'][0]]
 
         if parent_id in self.all_mrnas:
             potential_parent = self.all_mrnas[parent_id]
 
             if potential_parent.location.strand != orphan.location.strand:
-                log.error("Conflict between an orphan %s and its potential parent location: %s" % (orphan.type, parent_id))
+                log.error("Conflict between an orphan %s and its potential parent %s strand: %s != %s" % (orphan.type, parent_id, orphan.location.strand, potential_parent.location.strand))
                 return None
 
+            del orphan.qualifiers['Parent']  # previous parent is no longer parent
             potential_parent.sub_features.append(orphan)
 
             if potential_parent.location.start > orphan.location.start:
-                potential_parent.location.start = orphan.location.start
+                potential_parent.location = FeatureLocation(orphan.location.start, potential_parent.location.end, strand=potential_parent.location.strand)
 
             if potential_parent.location.end < orphan.location.end:
-                potential_parent.location.end = orphan.location.end
+                potential_parent.location = FeatureLocation(potential_parent.location.start, orphan.location.end, strand=potential_parent.location.strand)
+
+            potential_parent = self.check_valid_mrna(potential_parent, last_one)
+
+            if potential_parent is None:
+                return None
 
             self.all_mrnas[parent_id] = potential_parent
 
@@ -222,10 +240,18 @@ class OgsCheck():
                 else:
                     gene_children.append(mrna)
             self.new_genes[potential_parent.qualifiers['Parent'][0]].sub_features = gene_children
+
+            # Fix gene location
+            if self.new_genes[potential_parent.qualifiers['Parent'][0]].location.start > potential_parent.location.start:
+                self.new_genes[potential_parent.qualifiers['Parent'][0]].location = FeatureLocation(potential_parent.location.start, self.new_genes[potential_parent.qualifiers['Parent'][0]].location.end, strand=potential_parent.location.strand)
+            if self.new_genes[potential_parent.qualifiers['Parent'][0]].location.end < potential_parent.location.end:
+                self.new_genes[potential_parent.qualifiers['Parent'][0]].location = FeatureLocation(self.new_genes[potential_parent.qualifiers['Parent'][0]].location.start, potential_parent.location.end, strand=potential_parent.location.strand)
+
         else:
             new_mRNA = self.create_parent(orphan, parent_id, orphan_id, "mRNA")
+            self.all_mrnas[parent_id] = new_mRNA
 
-        self.adopt_orphan_mrna(new_mRNA, inferred_parents)
+            self.adopt_orphan_mrna(new_mRNA, is_complete=last_one)
 
         return orphan
 
@@ -233,10 +259,11 @@ class OgsCheck():
         parser = argparse.ArgumentParser()
         parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
         parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
-        args = parser.parse_args()
+        parser.add_argument('--source', help="Change the source to given value for all features")
+        self.args = parser.parse_args()
 
         scaffs = []
-        for scaff in GFF.parse(args.infile):
+        for scaff in GFF.parse(self.args.infile):
             scaff.annotations = {}
             scaff.seq = ""
 
@@ -245,7 +272,7 @@ class OgsCheck():
             self.all_mrnas = {}
 
             # First check if we have inferred_parent (generated by bcbio-gff)
-            inferred_parents = self.find_inferred_parents(scaff.features)
+            self.inferred_parents = self.find_inferred_parents(scaff.features)
 
             for topfeat in scaff.features:
 
@@ -267,7 +294,7 @@ class OgsCheck():
                     continue
 
                 if topfeat.type == 'gene':
-                    # Simple case: a gene with mub features
+                    # Simple case: a gene with sub features
                     new_mrnas = []
 
                     for mrna in topfeat.sub_features:
@@ -283,18 +310,50 @@ class OgsCheck():
 
                 elif topfeat.type == 'mRNA':
                     # Found an mRNA without gene parent
-                    self.adopt_orphan_mrna(topfeat, inferred_parents)
+                    self.adopt_orphan_mrna(topfeat)
 
                 elif topfeat.type in ['exon', 'CDS']:
                     # Found an exon/cds without gene parent
-                    self.adopt_orphan_exoncds(topfeat, inferred_parents)
+                    self.adopt_orphan_exoncds(topfeat)
+                else:
+                    log.error('Unexpected feature type %s. There is bug.' % topfeat.type)
+
+            # Now handle the remaining inferred_parents
+            for topfeat_name in self.inferred_parents:
+                topfeat = self.inferred_parents[topfeat_name]
+
+                if len(topfeat.sub_features) < 1:
+                    log.error("Skipping an inferred_parent without children %s" % topfeat)
+                    continue
+
+                guessed_type = None
+                if topfeat.sub_features[0].type in ['exon', 'CDS', 'start_codon', 'stop_codon', "5'UTR", 'five_prime_UTR', 'five_prime_utr', "3'UTR", 'three_prime_UTR', 'three_prime_utr']:
+                    guessed_type = 'mRNA'
+                elif topfeat.sub_features[0].type == 'mRNA':
+                    guessed_type = 'gene'
+                else:
+                    log.error("Skipping an inferred_parent: failed to guess type %s" % topfeat)
+                    continue
+
+                if guessed_type == 'mRNA':
+                    num_seen = 0
+                    for sub in topfeat.sub_features:
+                        num_seen += 1
+                        last_one = num_seen == len(topfeat.sub_features)
+                        self.adopt_orphan_exoncds(sub, last_one=last_one)
+
+                elif guessed_type == 'gene':
+                    for sub in topfeat.sub_features:
+                        self.adopt_orphan_mrna(sub)
+                else:
+                    log.error('Unexpected feature type %s. There is bug.' % topfeat.type)
 
             scaff.features = self.new_genes.values()
 
             if len(self.new_genes):
                 scaffs.append(scaff)
 
-        GFF.write(scaffs, args.outfile)
+        GFF.write(scaffs, self.args.outfile)
 
         if self.skipped_types:
             log.warning("Skipped unknown/misplaced feature types: %s" % (self.skipped_types))
