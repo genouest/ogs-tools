@@ -122,6 +122,113 @@ class OgsCheck():
 
         return inferred
 
+    def create_parent(self, orphan, parent_id, orphan_id, parent_type):
+        q = {}
+        for key in orphan.qualifiers:
+            q[key] = list(orphan.qualifiers[key])
+        new_parent = SeqFeature(FeatureLocation(orphan.location.start, orphan.location.end), type=parent_type, strand=orphan.location.strand, qualifiers=q)
+        for qn in self.qlistName:
+            if qn in new_parent.qualifiers:
+                new_parent.qualifiers[qn][0] = parent_id
+        for qn in self.qlistName:
+            if qn in orphan.qualifiers:
+                # The new gene is assigned the id from the mrna, and the mrna might be modified
+                orphan.qualifiers[qn][0] = orphan_id
+        new_parent.sub_features = []
+        new_parent.sub_features.append(orphan)
+        orphan.qualifiers['Parent'] = new_parent.qualifiers['ID']
+        if 'Parent' in new_parent.qualifiers:
+            del new_parent.qualifiers['Parent']
+        change_parentname(orphan, 'Parent', orphan.qualifiers['ID'][0])
+        return new_parent
+
+    def adopt_orphan_mrna(self, orphan, inferred_parents):
+        # Validate it, create a gene parent, and look if we have a corresponding inferred_parent containing children from this mRNA
+        if 'Parent' in orphan.qualifiers and len(orphan.qualifiers['Parent']) == 1:
+            parent_id = orphan.qualifiers['Parent'][0]
+            orphan_id = orphan.qualifiers['ID'][0]
+        else:
+            parent_id = orphan.qualifiers['ID'][0]
+            orphan_id = parent_id + '-R'
+
+        if 'ID' in orphan.qualifiers and len(orphan.qualifiers['ID']) == 1:
+            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in inferred_parents:
+                orphan.sub_features = inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+
+        orphan = self.check_valid_mrna(orphan)
+
+        if orphan is not None:
+
+            if parent_id in self.new_genes:
+                potential_parent = self.new_genes[parent_id]
+
+                if potential_parent.location.strand != orphan.location.strand:
+                    log.error("Conflict between an orphan mRNA and its potential parent location: %s" % parent_id)
+                    return None
+
+                potential_parent.sub_features.append(orphan)
+
+                if potential_parent.location.start > orphan.location.start:
+                    potential_parent.location.start = orphan.location.start
+
+                if potential_parent.location.end < orphan.location.end:
+                    potential_parent.location.end = orphan.location.end
+
+                self.new_genes[parent_id] = potential_parent
+
+            else:
+                new_g = self.create_parent(orphan, parent_id, orphan_id, 'gene')
+                self.new_genes[parent_id] = new_g
+
+            self.all_mrnas[orphan.qualifiers['ID'][0]] = orphan
+
+        return orphan
+
+    def adopt_orphan_exoncds(self, orphan, inferred_parents):
+        # Validate it, create a gene parent, and look if we have a corresponding inferred_parent containing children from this mRNA
+        if 'Parent' in orphan.qualifiers and len(orphan.qualifiers['Parent']) == 1:
+            parent_id = orphan.qualifiers['Parent'][0]
+            orphan_id = orphan.qualifiers['ID'][0]
+        else:
+            parent_id = orphan.qualifiers['ID'][0]
+            orphan_id = '%s-%s' % (parent_id, orphan.type)
+
+        if 'ID' in orphan.qualifiers and len(orphan.qualifiers['ID']) == 1:
+            if len(orphan.sub_features) == 0 and orphan.qualifiers['ID'][0] in inferred_parents:
+                orphan.sub_features = inferred_parents[orphan.qualifiers['ID'][0]].sub_features
+
+        if parent_id in self.all_mrnas:
+            potential_parent = self.all_mrnas[parent_id]
+
+            if potential_parent.location.strand != orphan.location.strand:
+                log.error("Conflict between an orphan %s and its potential parent location: %s" % (orphan.type, parent_id))
+                return None
+
+            potential_parent.sub_features.append(orphan)
+
+            if potential_parent.location.start > orphan.location.start:
+                potential_parent.location.start = orphan.location.start
+
+            if potential_parent.location.end < orphan.location.end:
+                potential_parent.location.end = orphan.location.end
+
+            self.all_mrnas[parent_id] = potential_parent
+
+            # update its gene parent
+            gene_children = []
+            for mrna in self.new_genes[potential_parent.qualifiers['Parent'][0]].sub_features:
+                if mrna.qualifiers['ID'][0] == parent_id:
+                    gene_children.append(potential_parent)
+                else:
+                    gene_children.append(mrna)
+            self.new_genes[potential_parent.qualifiers['Parent'][0]].sub_features = gene_children
+        else:
+            new_mRNA = self.create_parent(orphan, parent_id, orphan_id, "mRNA")
+
+        self.adopt_orphan_mrna(new_mRNA, inferred_parents)
+
+        return orphan
+
     def check(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
@@ -132,28 +239,31 @@ class OgsCheck():
         for scaff in GFF.parse(args.infile):
             scaff.annotations = {}
             scaff.seq = ""
-            new_genes = {}
+
+            # Genes and mRNA list, reset on each new scaff
+            self.new_genes = {}
+            self.all_mrnas = {}
 
             # First check if we have inferred_parent (generated by bcbio-gff)
             inferred_parents = self.find_inferred_parents(scaff.features)
 
             for topfeat in scaff.features:
 
-                if topfeat.type not in ['gene', 'mRNA']:
+                if topfeat.type not in ['gene', 'mRNA', 'CDS', 'exon']:
                     if topfeat.type != 'inferred_parent':
                         self.skipped_types.add(topfeat.type)
                     continue
 
                 if 'ID' not in topfeat.qualifiers or len(topfeat.qualifiers['ID']) == 0:
-                    log.error("Found a gene without an ID attribute")
+                    log.error("Found a top level %s feature without an ID attribute" % topfeat.type)
                     continue
 
                 if len(topfeat.qualifiers['ID']) != 1:
-                    log.error("Found a gene with too many ID attributes")
+                    log.error("Found a top level %s feature with too many ID attributes" % topfeat.type)
                     continue
 
-                if topfeat.qualifiers['ID'][0] in new_genes.keys():
-                    log.error("Duplicate gene id: %s" % topfeat.qualifiers['ID'][0])
+                if topfeat.qualifiers['ID'][0] in self.new_genes.keys():
+                    log.error("Duplicate top level %s feature id: %s" % (topfeat.qualifiers['ID'][0], topfeat.type))
                     continue
 
                 if topfeat.type == 'gene':
@@ -166,57 +276,22 @@ class OgsCheck():
 
                         if mrna is not None:
                             new_mrnas.append(mrna)
+                            self.all_mrnas[mrna.qualifiers['ID'][0]] = mrna
 
                     topfeat.sub_features = new_mrnas
-                    new_genes[topfeat.qualifiers['ID'][0]] = topfeat
+                    self.new_genes[topfeat.qualifiers['ID'][0]] = topfeat
 
                 elif topfeat.type == 'mRNA':
                     # Found an mRNA without gene parent
-                    # Validate it, create a gene parent, and look if we have a corresponding inferred_parent containing children from this mRNA
-                    if 'Parent' in topfeat.qualifiers and len(topfeat.qualifiers['Parent']) == 1:
-                        parent_id = topfeat.qualifiers['Parent'][0]
-                        mrna_id_needs_change = False
-                    else:
-                        parent_id = topfeat.qualifiers['ID'][0]
-                        mrna_id_needs_change = True
+                    self.adopt_orphan_mrna(topfeat, inferred_parents)
 
-                    if 'ID' in topfeat.qualifiers and len(topfeat.qualifiers['ID']) == 1:
-                        if len(topfeat.sub_features) == 0 and topfeat.qualifiers['ID'][0] in inferred_parents:
-                            topfeat.sub_features = inferred_parents[topfeat.qualifiers['ID'][0]].sub_features
+                elif topfeat.type in ['exon', 'CDS']:
+                    # Found an exon/cds without gene parent
+                    self.adopt_orphan_exoncds(topfeat, inferred_parents)
 
-                    topfeat = self.check_valid_mrna(topfeat)
+            scaff.features = self.new_genes.values()
 
-                    if topfeat is None:
-                        continue
-
-                    if topfeat is not None:
-
-                        if parent_id in new_genes:
-                            new_genes[parent_id].sub_features.append(topfeat)
-                        else:
-                            q = {}
-                            for key in topfeat.qualifiers:
-                                q[key] = list(topfeat.qualifiers[key])
-                            new_g = SeqFeature(FeatureLocation(topfeat.location.start, topfeat.location.end), type="gene", strand=topfeat.location.strand, qualifiers=q)
-                            for qn in self.qlistName:
-                                if qn in new_g.qualifiers:
-                                    new_g.qualifiers[qn][0] = parent_id
-                            if mrna_id_needs_change:
-                                for qn in self.qlistName:
-                                    if qn in topfeat.qualifiers:
-                                        # The new gene is assigned the id from the mrna, and the mrna gets a suffix
-                                        topfeat.qualifiers[qn][0] = parent_id + '-R'
-                            new_g.sub_features = []
-                            new_g.sub_features.append(topfeat)
-                            topfeat.qualifiers['Parent'] = new_g.qualifiers['ID']
-                            if 'Parent' in new_g.qualifiers:
-                                del new_g.qualifiers['Parent']
-                            change_parentname(topfeat, 'Parent', topfeat.qualifiers['ID'][0])
-                            new_genes[parent_id] = new_g
-
-            scaff.features = new_genes.values()
-
-            if len(new_genes):
+            if len(self.new_genes):
                 scaffs.append(scaff)
 
         GFF.write(scaffs, args.outfile)
