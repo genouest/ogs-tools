@@ -150,6 +150,10 @@ class OgsCheck():
         if 'Parent' in new_parent.qualifiers:
             del new_parent.qualifiers['Parent']
         change_parentname(orphan, 'Parent', orphan.qualifiers['ID'][0])
+
+        if self.args.source:
+            new_parent.qualifiers['source'][0] = self.args.source
+
         return new_parent
 
     def adopt_orphan_mrna(self, orphan, is_complete=True):
@@ -306,6 +310,10 @@ class OgsCheck():
                             self.all_mrnas[mrna.qualifiers['ID'][0]] = mrna
 
                     topfeat.sub_features = new_mrnas
+
+                    if self.args.source:
+                        topfeat.qualifiers['source'][0] = self.args.source
+
                     self.new_genes[topfeat.qualifiers['ID'][0]] = topfeat
 
                 elif topfeat.type == 'mRNA':
