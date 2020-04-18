@@ -52,6 +52,9 @@ class OgsCheck():
             log.error("Duplicate mRNA id: %s" % mrna.qualifiers['ID'][0])
             return None
 
+        if 'Name' not in mrna.qualifiers:
+            mrna.qualifiers['Name'] = mrna.qualifiers['ID']
+
         if is_complete:
             self.mRNA_ids.append(mrna.qualifiers['ID'][0])
 
@@ -313,6 +316,9 @@ class OgsCheck():
 
                     if self.args.source:
                         topfeat.qualifiers['source'][0] = self.args.source
+
+                    if 'Name' not in topfeat.qualifiers:
+                        topfeat.qualifiers['Name'] = topfeat.qualifiers['ID']
 
                     self.new_genes[topfeat.qualifiers['ID'][0]] = topfeat
 
