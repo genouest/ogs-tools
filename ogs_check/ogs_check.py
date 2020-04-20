@@ -235,6 +235,18 @@ class OgsCheck():
             potential_parent = self.check_valid_mrna(potential_parent, last_one)
 
             if potential_parent is None:
+                # Failed validation => remove it from list of mrnas, and of genes
+                gene_id = potential_parent.qualifiers['Parent'][0]
+                gene = self.new_genes[gene_id]
+                if len(gene.sub_features) == 1:
+                    del self.new_genes[gene_id]
+                else:
+                    newsubfeats = []
+                    for subfeat in gene.sub_features:
+                        if subfeat.qualifiers['ID'][0] != parent_id:
+                            newsubfeats.append(subfeat)
+                    self.new_genes[gene_id].sub_features = newsubfeats
+                del self.all_mrnas[parent_id]
                 return None
 
             self.all_mrnas[parent_id] = potential_parent
