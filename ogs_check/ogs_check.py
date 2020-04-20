@@ -118,8 +118,8 @@ class OgsCheck():
                 previous_end = exon_coords[exon_start]
 
             # Check minimum cds size
-            if cds_cumul < 15:
-                log.warning("Discarding '%s' because CDS size < 15 (%s)" % (mrna.qualifiers['ID'][0], cds_cumul))
+            if cds_cumul < 18:
+                log.warning("Discarding '%s' because CDS size < 18 (%s)" % (mrna.qualifiers['ID'][0], cds_cumul))
                 return None
 
         if self.args.source:
