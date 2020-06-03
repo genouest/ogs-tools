@@ -324,6 +324,10 @@ class OgsCheck():
                             new_mrnas.append(mrna)
                             self.all_mrnas[mrna.qualifiers['ID'][0]] = mrna
 
+                    if len(new_mrnas) == 0:
+                        # No more mRNA, discard gene
+                        continue
+
                     topfeat.sub_features = new_mrnas
 
                     if self.args.source:
