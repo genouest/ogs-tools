@@ -104,7 +104,7 @@ class OgsCheck():
         mrna.sub_features = kept_gchild
 
         # Only check CDS/intron sizes when we're sure the mrna is complete
-        if is_complete:
+        if is_complete and not self.args.no_size:
             # Check minimum intron size
             start_sorted = sorted(exon_coords)
             previous_end = None
@@ -279,6 +279,7 @@ class OgsCheck():
         parser.add_argument('infile', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
         parser.add_argument('outfile', nargs='?', type=argparse.FileType('w'), default=sys.stdout)
         parser.add_argument('--source', help="Change the source to given value for all features")
+        parser.add_argument('--no-size', action='store_true', help="Disable CDS and intron size checking")
         self.args = parser.parse_args()
 
         scaffs = []
