@@ -78,7 +78,13 @@ class OgsCheck():
             if gchild.type in ['five_prime_utr', "5'UTR"]:
                 gchild.type = 'five_prime_UTR'
 
-            if gchild.type in ['three_prime_utr', "3'UTR"]:
+            elif gchild.type in ['three_prime_utr', "3'UTR"]:
+                gchild.type = 'three_prime_UTR'
+
+            elif gchild.type in ["UTR"] and gchild.location.start == mrna.location.start:
+                gchild.type = 'five_prime_UTR'
+
+            elif gchild.type in ["UTR"] and gchild.location.end == mrna.location.end:
                 gchild.type = 'three_prime_UTR'
 
             if gchild.type in ['exon', 'CDS', 'five_prime_UTR', 'three_prime_UTR']:
@@ -358,7 +364,7 @@ class OgsCheck():
                     continue
 
                 guessed_type = None
-                if topfeat.sub_features[0].type in ['exon', 'CDS', 'start_codon', 'stop_codon', "5'UTR", 'five_prime_UTR', 'five_prime_utr', "3'UTR", 'three_prime_UTR', 'three_prime_utr']:
+                if topfeat.sub_features[0].type in ['exon', 'CDS', 'start_codon', 'stop_codon', 'UTR', "5'UTR", 'five_prime_UTR', 'five_prime_utr', "3'UTR", 'three_prime_UTR', 'three_prime_utr']:
                     guessed_type = 'mRNA'
                 elif topfeat.sub_features[0].type == 'mRNA':
                     guessed_type = 'gene'
