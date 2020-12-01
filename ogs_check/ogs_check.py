@@ -31,6 +31,35 @@ class OgsCheck():
         self.skipped_types = set()
         self.qlistName = ['Name', 'ID']
 
+    def guess_exons_from_cds_utr(self, mrna):
+
+        cached_utr_start = None
+        exon_coords = []
+
+        for gchild in mrna.sub_features:  # exons, cds, utr
+            if gchild.type == 'five_prime_UTR':
+                cached_utr_start = gchild.location.start
+            elif gchild.type == 'CDS':
+                if cached_utr_start is not None:
+                    exon_coords.append({'start': cached_utr_start, 'end': gchild.location.end})
+                else:
+                    exon_coords.append({'start': gchild.location.start, 'end': gchild.location.end})
+
+                cached_utr_start = None
+            elif gchild.type == 'three_prime_UTR':
+                exon_coords[-1]['end'] = gchild.location.end
+
+                cached_utr_start = None
+
+        count_id = 1
+        for exon in exon_coords:
+            new_subf = SeqFeature(FeatureLocation(exon['start'], exon['end']), type="exon", strand=mrna.location.strand, qualifiers={"source": mrna.qualifiers['source'][0], 'ID': mrna.qualifiers['ID'][0] + "_exon" + str(count_id)})
+            new_subf.qualifiers['Parent'] = mrna.qualifiers['ID']
+            mrna.sub_features.append(new_subf)
+            count_id += 1
+
+        return mrna
+
     def check_valid_mrna(self, mrna, is_complete=True):
 
         if mrna.type == 'transcript':
@@ -108,6 +137,10 @@ class OgsCheck():
                 self.exon_ids.append(gchild.qualifiers['ID'][0])
 
         mrna.sub_features = kept_gchild
+
+        if cds_cumul > 0 and len(self.exon_ids) == 0:
+            # No exon features, create them
+            mrna = self.guess_exons_from_cds_utr(mrna)
 
         # Only check CDS/intron sizes when we're sure the mrna is complete
         if is_complete and not self.args.no_size:
