@@ -25,8 +25,10 @@ Genes from the base annotation are replaced by overlapping apollo genes, preserv
 It depends on 4 software that can be installed from conda like this:
 
 ```
-conda create --name ogsmerger bedops bedtools cufflinks bcbiogff
+conda create --name ogsmerger bedops==2.4.39 bedtools cufflinks bcbiogff
 ```
+
+(pinning to bedops 2.4.39 as [version 2.4.40 broke the output of gff2bed](https://github.com/bedops/bedops/issues/244))
 
 Then you can source the conda environment:
 
