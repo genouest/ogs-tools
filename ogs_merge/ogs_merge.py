@@ -102,6 +102,9 @@ class OgsMerger():
         mrna_count = 0
         mrna_count_cycle = 1
 
+        gene_start = f.location.start
+        gene_end = f.location.end
+
         # Add previous versions as aliases
         gene_id_splitted = gene_id.split(".")
         if len(gene_id_splitted) > 1:
@@ -116,6 +119,10 @@ class OgsMerger():
         has_multiple_isoforms = len(f.sub_features) > 1
 
         for child in f.sub_features:  # mRNA
+
+            rna_start = f.location.start
+            rna_end = f.location.end
+
             child.qualifiers['source'][0] = self.source
             if 'filtertag' in child.qualifiers:
                 del child.qualifiers['filtertag']
@@ -217,10 +224,36 @@ class OgsMerger():
                     id_count_gg += 1
                 id_count += 1
 
+                # Check exon/utrs are not outside the gene/mrna coordinates
+                if gchild.location.start < rna_start or gchild.location.end < rna_start:
+                    rna_start = min(gchild.location.start, gchild.location.end)
+                if gchild.location.start > rna_end or gchild.location.end > rna_end:
+                    rna_end = max(gchild.location.start, gchild.location.end)
+
+            if rna_start != child.location.start:
+                print("Fixing start coordinate for mRNA {} from {} to {}".format(child.qualifiers['ID'][0], child.location.start, rna_start))
+                child.location.start = rna_start
+            if rna_end != child.location.end:
+                print("Fixing end coordinate for mRNA {} from {} to {}".format(child.qualifiers['ID'][0], child.location.end, rna_end))
+                child.location.end = rna_end
+
+            # Check mrna are not outside the gene coordinates
+            if gchild.location.start < gene_start or gchild.location.end < gene_start:
+                gene_start = min(gchild.location.start, gchild.location.end)
+            if gchild.location.start > gene_end or gchild.location.end > gene_end:
+                gene_end = max(gchild.location.start, gchild.location.end)
+
             mrna_count += 1
             if mrna_count >= 25:
                 mrna_count = 0
                 mrna_count_cycle += 1
+
+        if gene_start != f.location.start:
+            print("Fixing start coordinate for gene {} from {} to {}".format(f.qualifiers['ID'][0], f.location.start, gene_start))
+            f.location.start = gene_start
+        if gene_end != f.location.end:
+            print("Fixing end coordinate for gene {} from {} to {}".format(f.qualifiers['ID'][0], f.location.end, gene_end))
+            f.location.end = gene_end
 
         return f
 
