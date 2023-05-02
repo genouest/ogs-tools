@@ -232,10 +232,10 @@ class OgsMerger():
 
             if rna_start != child.location.start:
                 print("Fixing start coordinate for mRNA {} from {} to {}".format(child.qualifiers['ID'][0], child.location.start, rna_start))
-                child.location.start = rna_start
+                child.location = FeatureLocation(rna_start, child.location.end, strand=child.location.strand)
             if rna_end != child.location.end:
                 print("Fixing end coordinate for mRNA {} from {} to {}".format(child.qualifiers['ID'][0], child.location.end, rna_end))
-                child.location.end = rna_end
+                child.location = FeatureLocation(child.location.start, rna_end, strand=child.location.strand)
 
             # Check mrna are not outside the gene coordinates
             if gchild.location.start < gene_start or gchild.location.end < gene_start:
@@ -250,10 +250,10 @@ class OgsMerger():
 
         if gene_start != f.location.start:
             print("Fixing start coordinate for gene {} from {} to {}".format(f.qualifiers['ID'][0], f.location.start, gene_start))
-            f.location.start = gene_start
+            f.location = FeatureLocation(gene_start, f.location.end, strand=f.location.strand)
         if gene_end != f.location.end:
             print("Fixing end coordinate for gene {} from {} to {}".format(f.qualifiers['ID'][0], f.location.end, gene_end))
-            f.location.end = gene_end
+            f.location = FeatureLocation(f.location.start, gene_end, strand=f.location.strand)
 
         return f
 
