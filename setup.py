@@ -1,10 +1,12 @@
+import os
+
 from setuptools import find_packages, setup
 
 if os.path.exists("requirements.txt"):
     with open('requirements.txt') as f:
         requires = f.read().splitlines()
 else:
-    requires= []
+    requires = []
 
 setup(
     name="gogstools",
