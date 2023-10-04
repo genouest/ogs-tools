@@ -7,6 +7,7 @@ setup(
     name="gogstools",
     version='0.1',
     description="GenOuest tools for manipulating Official Gene Sets",
+    long_description="GenOuest tools for manipulating Official Gene Sets",
     author="Anthony Bretaudeau",
     author_email="anthony.bretaudeau@inrae.fr",
     url="https://github.com/genouest/ogs-tools",
