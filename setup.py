@@ -16,7 +16,7 @@ setup(
     platforms="Posix; MacOS X; Windows",
     entry_points="",
     scripts=[
-	    'gff2embl/gff2embl',
+        'gff2embl/gff2embl',
         'ogs_check/ogs_check',
         'ogs_merge/ogs_merge',
     ],

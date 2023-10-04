@@ -1,5 +1,4 @@
 from Bio import SeqFeature
-
 from Bio.SeqIO.InsdcIO import EmblWriter
 from Bio.SeqIO.InsdcIO import _insdc_location_string_ignoring_strand_and_subfeatures
 
