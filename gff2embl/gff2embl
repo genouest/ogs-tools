@@ -11,11 +11,10 @@ import sys
 from BCBio import GFF
 
 from Bio import Entrez, SeqIO
-from Bio.Alphabet import generic_dna
 from Bio.SeqFeature import AfterPosition, BeforePosition, CompoundLocation, FeatureLocation, Reference, SeqFeature
 
-from writers.BipaaEmblSubmitWriter import BipaaEmblSubmitWriter
-from writers.BipaaEmblWriter import BipaaEmblWriter
+from ogswriters.BipaaEmblSubmitWriter import BipaaEmblSubmitWriter
+from ogswriters.BipaaEmblWriter import BipaaEmblWriter
 
 
 def get_tax_id(species):
@@ -100,7 +99,7 @@ else:
 
 print('Loading input GFF and fasta files...')
 
-seq_dict = SeqIO.to_dict(SeqIO.parse(args.genome, "fasta", alphabet=generic_dna))
+seq_dict = SeqIO.to_dict(SeqIO.parse(args.genome, "fasta"))
 
 prot_seq_dict = SeqIO.to_dict(SeqIO.parse(args.proteins, "fasta"))
 

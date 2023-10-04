@@ -17,6 +17,12 @@ Here's how we manage annotations at BIPAA:
 - Regularly we generate a new OGS by merging the automatic annotation with Apollo annotated genes (the valid ones only). We use the `ogs_merge` script to do that.
 - To submit the OGS to ENA @ EBI in EMBL format, we (would like to) use `gff2embl`
 
+These tools can be install with pip:
+
+```
+pip install gogstools
+```
+
 ## Merging OGS
 
 This script allows to merge a base annotation with an apollo annotation.
@@ -39,8 +45,8 @@ source activate ogsmerger
 And run the script:
 
 ```
-$ python ogs_merge/ogs_merge.py -h
-usage: ogs_merge.py [-h] [-p PREVIOUS_GFF] [-d DELETED] [-o OUT_PREFIX]
+$ python ogs_merge/ogs_merge -h
+usage: ogs_merge   [-h] [-p PREVIOUS_GFF] [-d DELETED] [-o OUT_PREFIX]
                     genome ogs_name id_regex id_syntax base_gff apollo_gff
 
 positional arguments:
@@ -76,8 +82,8 @@ This script generates a GFF file, the transcript/cds/protein fasta files, a file
 In gff2embl, there is a script to submit annotations to EBI ENA.
 
 ```
-$ python gff2embl/gff2embl.py --h
-usage: gff2embl.py [-h] -g GENOME -p PROTEINS -s SPECIES -d DESCRIPTION -e
+$ python gff2embl/gff2embl --h
+usage: gff2embl   [-h] -g GENOME -p PROTEINS -s SPECIES -d DESCRIPTION -e
                    EMAIL -j PROJECT [--ref_title REF_TITLE]
                    [--ref_journal REF_JOURNAL] [--ref_authors REF_AUTHORS]
                    [--ref_pubmed_id REF_PUBMED_ID]
@@ -149,4 +155,4 @@ java -jar embl-api-validator-1.1.xxx.jar -r ogs.embl
 
 Available under the GPLv3 License
 
-Author: Anthony Bretaudeau <anthony.bretaudeau@inra.fr>
+Author: Anthony Bretaudeau <anthony.bretaudeau@inrae.fr>
