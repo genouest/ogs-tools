@@ -10,7 +10,7 @@ else:
 
 setup(
     name="gogstools",
-    version='0.1',
+    version='0.1.1',
     description="GenOuest tools for manipulating Official Gene Sets",
     long_description="GenOuest tools for manipulating Official Gene Sets",
     author="Anthony Bretaudeau",
