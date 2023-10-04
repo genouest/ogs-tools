@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
 setup(
     name="gogstools",
     version='0.1',
-    description="GenOuest's tools for manipulating Official Gene Sets",
+    description="GenOuest tools for manipulating Official Gene Sets",
     author="Anthony Bretaudeau",
     author_email="anthony.bretaudeau@inrae.fr",
     url="https://github.com/genouest/ogs-tools",
