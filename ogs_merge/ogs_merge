@@ -484,10 +484,10 @@ class OgsMerger():
 
         base_gff_in = open(self.filtered_base_gff, 'r')
         base_gff_out = open(self.tmpdir + '/base_cds.gff', 'w+')
-        for l in base_gff_in:
-            cols = l.strip().split()
+        for li in base_gff_in:
+            cols = li.strip().split()
             # FIXME CDS could be more appropriate (or maybe not...)
-            if not l.startswith("#") and cols[2] == 'exon':
+            if not li.startswith("#") and cols[2] == 'exon':
                 cols[8] = re.sub(r'ID=([a-zA-Z0-9]+)', r'exID=\1', cols[8])  # remove already set id
                 cols[8] = re.sub(r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\.\-_]*)?', r'ID=\1', cols[8])  # generate a fake id based on Parent + remove multiple parents (ie when an exon is part of multiple isoforms)
                 cols[8] = cols[8].rstrip(";")  # gff2bed doesn't like trailing ;
@@ -672,9 +672,14 @@ class OgsMerger():
                     for w, g in self.name_map.items():
                         if g == self.primary_matches[wa]['gid']:
                             already_assigned = w
-                    # The id was already used for another gene, don't store any id mapping for this gene, we will generate a new id later
-                    # This happens when a gene was splitted by annotators (but not only)
-                    print("WARNING: Gene '" + wa + "' should be assigned id '" + self.primary_matches[wa]['gid'] + "' but it is already used by gene '" + already_assigned + "'. A new id will be created.")
+
+                    if already_assigned not in self.apollo_ids_in_latest:
+                        print("WARNING: Gene '" + wa + "' will be assigned id '" + self.primary_matches[wa]['gid'] + "' but it was already used by another no-more-existing gene '" + already_assigned + "' in previous annotation.")
+                        self.name_map[wa] = self.primary_matches[wa]['gid']
+                    else:
+                        # The id was already used for another gene, don't store any id mapping for this gene, we will generate a new id later
+                        # This happens when a gene was splitted by annotators (but not only)
+                        print("WARNING: Gene '" + wa + "' should be assigned id '" + self.primary_matches[wa]['gid'] + "' but it is already used by gene '" + already_assigned + "'. A new id will be created.")
 
     def parse_apollo_annotation(self):
         # Load the new WA annotation
@@ -937,7 +942,6 @@ class OgsMerger():
 
         self.run_cmd("gffread " + self.out_gff + " -g " + self.genome + " -w " + self.out_transcript + " -x " + self.out_cds + " -y " + self.tmpdir + '/proteins.fa')
 
-
         # Protein fasta file need to have modified id
         prot_in = open(self.tmpdir + '/proteins.fa', 'r')
         prot_out = open(self.out_protein, 'w+')
@@ -953,7 +957,7 @@ class OgsMerger():
         parser = argparse.ArgumentParser()
         parser.add_argument("genome", help="Genome file (fasta)")
         parser.add_argument("ogs_name", help="Name of the new OGS")
-        parser.add_argument("id_regex", help="Regex with a capturing group around the incremental part of gene ids, and a second one around the version suffix (e.g. 'GSSPF[GPT]([0-9]{8})[0-9]{3}(\.[0-9]+)?')")
+        parser.add_argument("id_regex", help="Regex with a capturing group around the incremental part of gene ids, and a second one around the version suffix (e.g. 'GSSPF[GPT]([0-9]{8})[0-9]{3}(\\.[0-9]+)?')")
         parser.add_argument("id_syntax", help="String representing a gene id, with {id} where the incremental part of the id should be placed (e.g. 'GSSPFG{id}001')")
         parser.add_argument("base_gff", help="The gff from the base annotation (usually automatic annotation)")
         parser.add_argument("apollo_gff", help="The gff from the new Apollo valid annotation")
