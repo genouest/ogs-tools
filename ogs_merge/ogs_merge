@@ -20,6 +20,20 @@ from Bio.SeqFeature import FeatureLocation, SeqFeature
 
 class OgsMerger():
 
+    def run_cmd(self, cmd):
+
+        print("Executing command:")
+        print("{}".format(cmd))
+
+        try:
+            retcode = call(cmd, shell=True)
+            if retcode < 0:
+                print("Child was terminated by signal " + str(-retcode), file=sys.stderr)
+
+        except OSError as e:
+            print("Execution failed:" + e, file=sys.stderr)
+            sys.exit(1)
+
     # Parse a gene feature and create a hash representing its content (structure and attributes)
     # we can not always trust date_last_modified as some fix scripts don't change its value
     # instead, build a hash representing the gene content (exons, attributes, ...)
@@ -480,28 +494,14 @@ class OgsMerger():
                 print('\t'.join(cols), file=base_gff_out)
         base_gff_out.close()
 
-        try:
-            retcode = call("awk '{if ($3 == \"gene\") {print}}' FS='\t' OFS='\t' " + self.apollo_gff + " | gff2bed --do-not-sort | awk '{ if ($2 <= 0) {$2++}; print }' FS='\t' OFS='\t' | sort-bed - > " + self.tmpdir + "/apollo.bed", shell=True)
-            if retcode < 0:
-                print("Child was terminated by signal " + str(-retcode), file=sys.stderr)
+        self.run_cmd("awk '{if ($3 == \"gene\") {print}}' FS='\t' OFS='\t' " + self.apollo_gff + " | gff2bed --do-not-sort | awk '{ if ($2 <= 0) {$2++}; print }' FS='\t' OFS='\t' | sort-bed - > " + self.tmpdir + "/apollo.bed", shell=True)
 
-            retcode = call("cat " + self.tmpdir + "/base_cds.gff | gff2bed > " + self.tmpdir + "/base_cds.bed", shell=True)
-            if retcode < 0:
-                print("Child was terminated by signal " + str(-retcode), file=sys.stderr)
-        except OSError as e:
-            print("Execution failed:" + e, file=sys.stderr)
-            sys.exit(1)
+        self.run_cmd("cat " + self.tmpdir + "/base_cds.gff | gff2bed > " + self.tmpdir + "/base_cds.bed", shell=True)
 
         print("Computing intersect between new Apollo annotation and base annotation...")
         in_map = self.tmpdir + "/wa_to_all_base.tsv"
-        try:
-            retcode = call("intersectBed -s -wao -a " + self.tmpdir + "/apollo.bed -b " + self.tmpdir + "/base_cds.bed | cut -f4,14,21 | awk '{ if ($2 != \".\") {print} }'  | awk '{a[$1\"\t\"$2]+=$3;} END {for(i in a) print i\"\t\"a[i];}' | sort > " + in_map, shell=True)
-            if retcode < 0:
-                print("Child was terminated by signal " + str(-retcode), file=sys.stderr)
 
-        except OSError as e:
-            print("Execution failed:" + e, file=sys.stderr)
-            sys.exit(1)
+        self.run_cmd("intersectBed -s -wao -a " + self.tmpdir + "/apollo.bed -b " + self.tmpdir + "/base_cds.bed | cut -f4,14,21 | awk '{ if ($2 != \".\") {print} }'  | awk '{a[$1\"\t\"$2]+=$3;} END {for(i in a) print i\"\t\"a[i];}' | sort > " + in_map, shell=True)
 
         # Load the bedtools intersect result
         in_map_h = open(in_map)
@@ -764,7 +764,7 @@ class OgsMerger():
 
         # Check the mRNAs that were specifically deleted by annotators
         if self.deleted:
-            with open(self.deleted, 'rU') as f:
+            with open(self.deleted, 'r') as f:
                 for line in f:
                     mrnas_to_delete.append(line.strip())
 
@@ -934,13 +934,9 @@ class OgsMerger():
     # Create fasta output using gffread
     def write_fasta(self):
         print("Generating fasta files using gffread...")
-        try:
-            retcode = call("gffread " + self.out_gff + " -g " + self.genome + " -w " + self.out_transcript + " -x " + self.out_cds + " -y " + self.tmpdir + '/proteins.fa', shell=True)
-            if retcode < 0:
-                print("Child was terminated by signal " + str(-retcode), file=sys.stderr)
-        except OSError as e:
-            print("Execution failed:" + e, file=sys.stderr)
-            sys.exit(1)
+
+        self.run_cmd("gffread " + self.out_gff + " -g " + self.genome + " -w " + self.out_transcript + " -x " + self.out_cds + " -y " + self.tmpdir + '/proteins.fa', shell=True)
+
 
         # Protein fasta file need to have modified id
         prot_in = open(self.tmpdir + '/proteins.fa', 'r')
