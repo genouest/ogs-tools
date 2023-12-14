@@ -494,14 +494,14 @@ class OgsMerger():
                 print('\t'.join(cols), file=base_gff_out)
         base_gff_out.close()
 
-        self.run_cmd("awk '{if ($3 == \"gene\") {print}}' FS='\t' OFS='\t' " + self.apollo_gff + " | gff2bed --do-not-sort | awk '{ if ($2 <= 0) {$2++}; print }' FS='\t' OFS='\t' | sort-bed - > " + self.tmpdir + "/apollo.bed", shell=True)
+        self.run_cmd("awk '{if ($3 == \"gene\") {print}}' FS='\t' OFS='\t' " + self.apollo_gff + " | gff2bed --do-not-sort | awk '{ if ($2 <= 0) {$2++}; print }' FS='\t' OFS='\t' | sort-bed - > " + self.tmpdir + "/apollo.bed")
 
-        self.run_cmd("cat " + self.tmpdir + "/base_cds.gff | gff2bed > " + self.tmpdir + "/base_cds.bed", shell=True)
+        self.run_cmd("cat " + self.tmpdir + "/base_cds.gff | gff2bed > " + self.tmpdir + "/base_cds.bed")
 
         print("Computing intersect between new Apollo annotation and base annotation...")
         in_map = self.tmpdir + "/wa_to_all_base.tsv"
 
-        self.run_cmd("intersectBed -s -wao -a " + self.tmpdir + "/apollo.bed -b " + self.tmpdir + "/base_cds.bed | cut -f4,14,21 | awk '{ if ($2 != \".\") {print} }'  | awk '{a[$1\"\t\"$2]+=$3;} END {for(i in a) print i\"\t\"a[i];}' | sort > " + in_map, shell=True)
+        self.run_cmd("intersectBed -s -wao -a " + self.tmpdir + "/apollo.bed -b " + self.tmpdir + "/base_cds.bed | cut -f4,14,21 | awk '{ if ($2 != \".\") {print} }'  | awk '{a[$1\"\t\"$2]+=$3;} END {for(i in a) print i\"\t\"a[i];}' | sort > " + in_map)
 
         # Load the bedtools intersect result
         in_map_h = open(in_map)
@@ -935,7 +935,7 @@ class OgsMerger():
     def write_fasta(self):
         print("Generating fasta files using gffread...")
 
-        self.run_cmd("gffread " + self.out_gff + " -g " + self.genome + " -w " + self.out_transcript + " -x " + self.out_cds + " -y " + self.tmpdir + '/proteins.fa', shell=True)
+        self.run_cmd("gffread " + self.out_gff + " -g " + self.genome + " -w " + self.out_transcript + " -x " + self.out_cds + " -y " + self.tmpdir + '/proteins.fa')
 
 
         # Protein fasta file need to have modified id
