@@ -19,7 +19,7 @@ Here's how we manage annotations at BIPAA:
 
 These tools can be install with pip:
 
-```
+```bash
 pip install gogstools
 ```
 
@@ -30,7 +30,7 @@ Genes from the base annotation are replaced by overlapping apollo genes, preserv
 
 It depends on 4 software that can be installed from conda like this:
 
-```
+```bash
 conda create --name ogsmerger bedops==2.4.39 bedtools cufflinks bcbiogff
 ```
 
@@ -38,14 +38,20 @@ conda create --name ogsmerger bedops==2.4.39 bedtools cufflinks bcbiogff
 
 Then you can source the conda environment:
 
-```
+```bash
 source activate ogsmerger
+```
+
+Install gogstools with pip inside the conda env:
+
+```bash
+pip install gogstools
 ```
 
 And run the script:
 
-```
-$ python ogs_merge/ogs_merge -h
+```bash
+$ ogs_merge -h
 usage: ogs_merge   [-h] [-p PREVIOUS_GFF] [-d DELETED] [-o OUT_PREFIX]
                     genome ogs_name id_regex id_syntax base_gff apollo_gff
 
@@ -81,8 +87,8 @@ This script generates a GFF file, the transcript/cds/protein fasta files, a file
 
 In gff2embl, there is a script to submit annotations to EBI ENA.
 
-```
-$ python gff2embl/gff2embl --h
+```bash
+$ gff2embl --h
 usage: gff2embl   [-h] -g GENOME -p PROTEINS -s SPECIES -d DESCRIPTION -e
                    EMAIL -j PROJECT [--ref_title REF_TITLE]
                    [--ref_journal REF_JOURNAL] [--ref_authors REF_AUTHORS]
@@ -135,11 +141,11 @@ optional arguments:
 
 EBI are using a custom embl format with some exotic validation rules.
 They provide a tool that performs validation of the produced embl file + automatically reformat some parts of embl files according to their rules.
-After running gff2embl, you need to get the latest validator jar from https://mvnrepository.com/artifact/uk.ac.ebi.ena.sequence/embl-api-validator
+After running gff2embl, you need to get the [latest validator jar](https://mvnrepository.com/artifact/uk.ac.ebi.ena.sequence/embl-api-validator)
 
 Then run:
 
-```
+```bash
 java -jar embl-api-validator-1.1.xxx.jar -fix -r ogs.embl
 ```
 
@@ -147,7 +153,7 @@ This will modify the `ogs.embl` file, be sure to keep a backup.
 
 If you only want to validate the emb file without modifying it, run it wihout the -fix option:
 
-```
+```bash
 java -jar embl-api-validator-1.1.xxx.jar -r ogs.embl
 ```
 
