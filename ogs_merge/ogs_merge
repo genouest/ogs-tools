@@ -484,17 +484,24 @@ class OgsMerger():
 
         base_gff_in = open(self.filtered_base_gff, 'r')
         base_gff_out = open(self.tmpdir + '/base_cds.gff', 'w+')
+
+        if not self.regex_rna:
+            rna_reg = r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\.\-_]*)?'
+        else:
+            rna_reg = r'Parent=' + self.regex_rna
+
+        if not self.regex_rna_replace:
+            rna_reg_rep = r'ID=\1'
+        else:
+            rna_reg_rep = r'ID=' + self.regex_rna_replace
+
         for li in base_gff_in:
             cols = li.strip().split()
             # FIXME CDS could be more appropriate (or maybe not...)
             if not li.startswith("#") and cols[2] == 'exon':
                 cols[8] = re.sub(r'ID=([a-zA-Z0-9]+)', r'exID=\1', cols[8])  # remove already set id
                 # Generate a fake id based on Parent + remove multiple parents (ie when an exon is part of multiple isoforms)
-                if not self.regex_rna:
-                    rna_reg = r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\.\-_]*)?'
-                else:
-                    rna_reg = r'Parent=' + self.regex_rna
-                cols[8] = re.sub(rna_reg, r'ID=\1', cols[8])
+                cols[8] = re.sub(rna_reg, rna_reg_rep, cols[8])
                 cols[8] = cols[8].rstrip(";")  # gff2bed doesn't like trailing ;
                 print('\t'.join(cols), file=base_gff_out)
         base_gff_out.close()
@@ -971,6 +978,8 @@ class OgsMerger():
         parser.add_argument("-d", "--deleted", help="File containing a list of mRNAs to remove")
         parser.add_argument("-o", "--out_prefix", help="Prefix for output files (default=<ogs_name>_<today's date>)")
         parser.add_argument("--regex_rna", help="Regex matching mRNA ids, with a capturing group around the gene id without version suffix (default='([a-zA-Z0-9]+)([\\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\\.\\-_]*)?' )")
+        parser.add_argument("--regex_rna_replace", help="Replacement string to create a gene id from regex_rna captured group, where {id} is the captured group (default='{id}' )")
+
         args = parser.parse_args()
 
         self.base_gff = args.base_gff
@@ -984,6 +993,7 @@ class OgsMerger():
         self.id_regex = args.id_regex
         self.id_syntax = args.id_syntax
         self.regex_rna = args.regex_rna
+        self.regex_rna_replace = args.regex_rna_replace
 
         self.out_prefix = args.out_prefix
         if not self.out_prefix:
