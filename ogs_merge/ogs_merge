@@ -137,11 +137,14 @@ class OgsMerger():
             rna_start = f.location.start
             rna_end = f.location.end
 
-            isoform_suffix = self.isoform_prefix
-            if self.use_numbers_for_isoform:
-                isoform_suffix += str(mrna_count + 1)
+            if not self.first_isoform_not_numbered or mrna_count > 0:
+                isoform_suffix = self.isoform_prefix
+                if self.use_numbers_for_isoform:
+                    isoform_suffix += str(mrna_count + 1)
+                else:
+                    isoform_suffix += (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
             else:
-                isoform_suffix += (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
+                isoform_suffix = ""
 
             child.qualifiers['source'][0] = self.source
             if 'filtertag' in child.qualifiers:
@@ -999,6 +1002,7 @@ class OgsMerger():
         parser.add_argument("--exon_parent_to_gene", help="Replacement string to create a gene id from exon_parent_regex first captured group (aka gene id radical), where \\1 is the captured group (default='\\1' )")
         parser.add_argument("--isoform_prefix", help="Prefix for the isoform part of mRNA ids (default='-R')", default="-R")
         parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true")
+        parser.add_argument('--first_isoform_not_numbered', help='If you use this flag, the first isoform will not be numbered (e.g. no -RA).', action="store_true")
         parser.add_argument('--no_id_padding', help='By default, the numeric part of gene ids will be padded with zeros to a fixed lenght (automatically guessed). If you use this flag, padding is disabled.', action="store_true")
 
         args = parser.parse_args()
@@ -1017,6 +1021,7 @@ class OgsMerger():
         self.exon_parent_to_gene = args.exon_parent_to_gene
         self.isoform_prefix = args.isoform_prefix
         self.use_numbers_for_isoform = args.use_numbers_for_isoform
+        self.first_isoform_not_numbered = args.first_isoform_not_numbered
         self.no_id_padding = args.no_id_padding
 
         self.out_prefix = args.out_prefix
