@@ -996,10 +996,10 @@ class OgsMerger():
         parser.add_argument("-d", "--deleted", help="File containing a list of mRNAs to remove")
         parser.add_argument("-o", "--out_prefix", help="Prefix for output files (default=<ogs_name>_<today's date>)")
         parser.add_argument("--exon_parent_regex", help="Regex matching exons' Parent ids, with a capturing group around the gene id radical (default='([a-zA-Z0-9]+)([\\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\\.\\-_]*)?' )")
-        parser.add_argument("--exon_parent_to_gene", help="Replacement string to create a gene id from exon_parent_regex first captured group (aka gene id radical), where \1 is the captured group (default='\1' )")
+        parser.add_argument("--exon_parent_to_gene", help="Replacement string to create a gene id from exon_parent_regex first captured group (aka gene id radical), where \\1 is the captured group (default='\\1' )")
         parser.add_argument("--isoform_prefix", help="Prefix for the isoform part of mRNA ids (default='-R')", default="-R")
-        parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true" )
-        parser.add_argument('--no_id_padding', help='By default, the numeric part of gene ids will be padded with zeros to a fixed lenght (automatically guessed). If you use this flag, padding is disabled.', action="store_true" )
+        parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true")
+        parser.add_argument('--no_id_padding', help='By default, the numeric part of gene ids will be padded with zeros to a fixed lenght (automatically guessed). If you use this flag, padding is disabled.', action="store_true")
 
         args = parser.parse_args()
 
