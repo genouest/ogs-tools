@@ -261,10 +261,10 @@ class OgsMerger():
                 child.location = FeatureLocation(child.location.start, rna_end, strand=child.location.strand)
 
             # Check mrna are not outside the gene coordinates
-            if gchild.location.start < gene_start or gchild.location.end < gene_start:
-                gene_start = min(gchild.location.start, gchild.location.end)
-            if gchild.location.start > gene_end or gchild.location.end > gene_end:
-                gene_end = max(gchild.location.start, gchild.location.end)
+            if child.location.start < gene_start or child.location.end < gene_start:
+                gene_start = min(child.location.start, child.location.end)
+            if child.location.start > gene_end or child.location.end > gene_end:
+                gene_end = max(child.location.start, child.location.end)
 
             mrna_count += 1
             if mrna_count >= 25:
