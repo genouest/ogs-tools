@@ -137,12 +137,18 @@ class OgsMerger():
             rna_start = f.location.start
             rna_end = f.location.end
 
+            isoform_suffix = self.isoform_prefix
+            if self.use_numbers_for_isoform:
+                isoform_suffix += (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
+            else:
+                isoform_suffix += str(mrna_count + 1)
+
             child.qualifiers['source'][0] = self.source
             if 'filtertag' in child.qualifiers:
                 del child.qualifiers['filtertag']
             if 'owner' in child.qualifiers:
                 del child.qualifiers['owner']
-            mrna_id = gene_id + "-" + "R" + (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
+            mrna_id = gene_id + isoform_suffix
             if 'Name' not in child.qualifiers:
                 child.qualifiers['Name'] = [mrna_id]
             else:
@@ -202,9 +208,9 @@ class OgsMerger():
             if len(gene_id_splitted) > 1:
                 if 'Alias' not in child.qualifiers:
                     child.qualifiers['Alias'] = []
-                child.qualifiers['Alias'].append(gene_id_no_version + "-" + "R" + (string.ascii_uppercase[mrna_count] * mrna_count_cycle))
+                child.qualifiers['Alias'].append(gene_id_no_version + isoform_suffix)
                 for old_version in range(1, gene_version):
-                    child.qualifiers['Alias'].append(gene_id_no_version + '.' + str(old_version) + "-" + "R" + (string.ascii_uppercase[mrna_count] * mrna_count_cycle))
+                    child.qualifiers['Alias'].append(gene_id_no_version + '.' + str(old_version) + isoform_suffix)
 
             # Remove uppercase variants if any
             if 'Allele' in child.qualifiers:
@@ -485,15 +491,15 @@ class OgsMerger():
         base_gff_in = open(self.filtered_base_gff, 'r')
         base_gff_out = open(self.tmpdir + '/base_cds.gff', 'w+')
 
-        if not self.regex_rna:
+        if not self.exon_parent_regex:
             rna_reg = r'Parent=([a-zA-Z0-9]+)([\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\.\-_]*)?'
         else:
-            rna_reg = r'Parent=' + self.regex_rna
+            rna_reg = r'Parent=' + self.exon_parent_regex
 
-        if not self.regex_rna_replace:
+        if not self.exon_parent_to_gene:
             rna_reg_rep = r'ID=\1'
         else:
-            rna_reg_rep = r'ID=' + self.regex_rna_replace
+            rna_reg_rep = r'ID=' + self.exon_parent_to_gene
 
         for li in base_gff_in:
             cols = li.strip().split()
@@ -706,7 +712,7 @@ class OgsMerger():
                     base_id = ""
 
                     if wa_id not in self.name_map:
-                        # A new gene that have no bedtools result and that wasn't found in the previous annotation version
+                        # A new gene that has no bedtools result and that wasn't found in the previous annotation version
                         # Give it a completely new id
                         base_id = self.id_syntax.replace('{id}', str(self.highest_id).zfill(self.padding_length))
                         self.name_map[wa_id] = base_id + ".1"
@@ -960,6 +966,7 @@ class OgsMerger():
         for prot in prot_in:
             prot = prot.strip()
             if prot.startswith(">"):
+                # FIXME need to adapt this when playing with --isoform_prefix option... not sure how (good luck if you need to change this)
                 prot = re.sub(r'-R([A-Z]+)', r'-P\1', prot)
             print(prot, file=prot_out)
         prot_out.close()
@@ -977,8 +984,10 @@ class OgsMerger():
         parser.add_argument("-p", "--previous_gff", help="The gff from the previous annotation version (if different than <base_gff>)")
         parser.add_argument("-d", "--deleted", help="File containing a list of mRNAs to remove")
         parser.add_argument("-o", "--out_prefix", help="Prefix for output files (default=<ogs_name>_<today's date>)")
-        parser.add_argument("--regex_rna", help="Regex matching mRNA ids, with a capturing group around the gene id without version suffix (default='([a-zA-Z0-9]+)([\\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\\.\\-_]*)?' )")
-        parser.add_argument("--regex_rna_replace", help="Replacement string to create a gene id from regex_rna captured group, where {id} is the captured group (default='{id}' )")
+        parser.add_argument("--exon_parent_regex", help="Regex matching exons' Parent ids, with a capturing group around the gene id radical (default='([a-zA-Z0-9]+)([\\.0-9]+)?([-_]R[A-Z]+)?(,[a-zA-Z0-9\\.\\-_]*)?' )")
+        parser.add_argument("--exon_parent_to_gene", help="Replacement string to create a gene id from exon_parent_regex first captured group (aka gene id radical), where \1 is the captured group (default='\1' )")
+        parser.add_argument("--isoform_prefix", help="Prefix for the isoform part of mRNA ids (default='-R')", default="-R")
+        parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true" )
 
         args = parser.parse_args()
 
@@ -992,8 +1001,10 @@ class OgsMerger():
 
         self.id_regex = args.id_regex
         self.id_syntax = args.id_syntax
-        self.regex_rna = args.regex_rna
-        self.regex_rna_replace = args.regex_rna_replace
+        self.exon_parent_regex = args.exon_parent_regex
+        self.exon_parent_to_gene = args.exon_parent_to_gene
+        self.isoform_prefix = args.isoform_prefix
+        self.use_numbers_for_isoform = args.use_numbers_for_isoform
 
         self.out_prefix = args.out_prefix
         if not self.out_prefix:
