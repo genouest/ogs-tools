@@ -134,6 +134,8 @@ class OgsMerger():
 
         for child in f.sub_features:
 
+            child.qualifiers['source'][0] = self.source
+
             if child.type not in ("transcript", "mRNA"):
                 print("Found unexpected feature under gene, %s, leaving as is" % child.type)
                 continue
@@ -150,7 +152,6 @@ class OgsMerger():
             else:
                 isoform_suffix = ""
 
-            child.qualifiers['source'][0] = self.source
             if 'filtertag' in child.qualifiers:
                 del child.qualifiers['filtertag']
             if 'owner' in child.qualifiers:
