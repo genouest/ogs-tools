@@ -139,9 +139,9 @@ class OgsMerger():
 
             isoform_suffix = self.isoform_prefix
             if self.use_numbers_for_isoform:
-                isoform_suffix += (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
-            else:
                 isoform_suffix += str(mrna_count + 1)
+            else:
+                isoform_suffix += (string.ascii_uppercase[mrna_count] * mrna_count_cycle)
 
             child.qualifiers['source'][0] = self.source
             if 'filtertag' in child.qualifiers:
@@ -601,7 +601,12 @@ class OgsMerger():
                         else:
                             print("ERROR: could not parse previous ID: " + pid)
 
-                        previous_assigned_id = self.id_syntax.replace('{id}', str(pid_number).zfill(self.padding_length))
+                        if self.no_id_padding:
+                            padded_pid = str(pid_number)
+                        else:
+                            padded_pid = str(pid_number).zfill(self.padding_length)
+
+                        previous_assigned_id = self.id_syntax.replace('{id}', padded_pid)
 
                         for alias in f.qualifiers['Alias']:
                             # Alias format is different in apollo 1.x and apollo 2.x, try to support both
@@ -714,7 +719,13 @@ class OgsMerger():
                     if wa_id not in self.name_map:
                         # A new gene that has no bedtools result and that wasn't found in the previous annotation version
                         # Give it a completely new id
-                        base_id = self.id_syntax.replace('{id}', str(self.highest_id).zfill(self.padding_length))
+
+                        if self.no_id_padding:
+                            padded_pid = str(self.highest_id)
+                        else:
+                            padded_pid = str(self.highest_id).zfill(self.padding_length)
+
+                        base_id = self.id_syntax.replace('{id}', padded_pid)
                         self.name_map[wa_id] = base_id + ".1"
                         self.highest_id += 1
                         self.num_new_id += 1
@@ -988,6 +999,7 @@ class OgsMerger():
         parser.add_argument("--exon_parent_to_gene", help="Replacement string to create a gene id from exon_parent_regex first captured group (aka gene id radical), where \1 is the captured group (default='\1' )")
         parser.add_argument("--isoform_prefix", help="Prefix for the isoform part of mRNA ids (default='-R')", default="-R")
         parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true" )
+        parser.add_argument('--no_id_padding', help='By default, the numeric part of gene ids will be padded with zeros to a fixed lenght (automatically guessed). If you use this flag, padding is disabled.', action="store_true" )
 
         args = parser.parse_args()
 
@@ -1005,6 +1017,7 @@ class OgsMerger():
         self.exon_parent_to_gene = args.exon_parent_to_gene
         self.isoform_prefix = args.isoform_prefix
         self.use_numbers_for_isoform = args.use_numbers_for_isoform
+        self.no_id_padding = args.no_id_padding
 
         self.out_prefix = args.out_prefix
         if not self.out_prefix:
