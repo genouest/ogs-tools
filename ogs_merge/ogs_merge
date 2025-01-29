@@ -167,7 +167,7 @@ class OgsMerger():
             if self.id_syntax_rna:
                 search = re.search(self.id_regex, gene_id)
                 mrna_id = self.id_syntax_rna.replace('{id}', search.group(1))
-                if len(search.groups() == 2):
+                if len(search.groups()) == 2:
                     mrna_id += search.group(2)
             else:
                 mrna_id = gene_id
