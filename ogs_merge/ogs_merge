@@ -72,7 +72,9 @@ class OgsMerger():
         gene_id = f.qualifiers['ID'][0]
         f.qualifiers['ID'][0] = gene_id
 
-        f.qualifiers['source'][0] = self.source
+        if 'source' in f.qualifiers:
+            f.qualifiers['source'][0] = self.source
+
         if 'filtertag' in f.qualifiers:
             del f.qualifiers['filtertag']
         if 'owner' in f.qualifiers:
@@ -1014,6 +1016,7 @@ class OgsMerger():
         parser.add_argument('--use_numbers_for_isoform', help='By default, the script will name the isoforms of a gene with letters. If you use this flag, it will be numbers instead.', action="store_true")
         parser.add_argument('--first_isoform_not_numbered', help='If you use this flag, the first isoform will not be numbered (e.g. no -RA).', action="store_true")
         parser.add_argument('--no_id_padding', help='By default, the numeric part of gene ids will be padded with zeros to a fixed lenght (automatically guessed). If you use this flag, padding is disabled.', action="store_true")
+        parser.add_argument('--id_syntax_rna', help="String representing a gene id, with {id} where the incremental part of the id should be placed (e.g. 'GSSPFR{id}001'). Default is same as id_syntax")
 
         args = parser.parse_args()
 
@@ -1027,6 +1030,7 @@ class OgsMerger():
 
         self.id_regex = args.id_regex
         self.id_syntax = args.id_syntax
+        self.id_syntax_rna = args.id_syntax_rna
         self.exon_parent_regex = args.exon_parent_regex
         self.exon_parent_to_gene = args.exon_parent_to_gene
         self.isoform_prefix = args.isoform_prefix
