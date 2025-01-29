@@ -233,7 +233,9 @@ class OgsMerger():
 
             id_count = 1
             for gchild in child.sub_features:  # exons, cds, ...
-                gchild.qualifiers['source'][0] = self.source
+                if 'source' in gchild.qualifiers:
+                    gchild.qualifiers['source'][0] = self.source
+
                 if 'filtertag' in gchild.qualifiers:
                     del gchild.qualifiers['filtertag']
                 if 'ID' in gchild.qualifiers:
